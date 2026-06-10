@@ -51,6 +51,7 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
     fun updateMaxSnoozes(n: Int)                { _alarm.value = _alarm.value.copy(maxSnoozes = n) }
     fun updateMessage(text: String)             { _alarm.value = _alarm.value.copy(message = text) }
     fun updateGradualWakeup(g: Boolean)         { _alarm.value = _alarm.value.copy(gradualWakeup = g) }
+    fun updateMathProblemCount(n: Int)          { _alarm.value = _alarm.value.copy(mathProblemCount = n.coerceAtLeast(1)) }
     fun updateGeofence(lat: Double?, lng: Double?, radius: Int? = null) {
         _alarm.value = _alarm.value.copy(
             geofenceLat = lat,

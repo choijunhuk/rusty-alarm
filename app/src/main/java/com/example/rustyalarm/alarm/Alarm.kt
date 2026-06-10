@@ -33,7 +33,8 @@ data class Alarm(
     val groupTag: String? = null,
     val maxSnoozes: Int = 0,          // 0 = unlimited
     val message: String = "",         // shown on ring screen, e.g. "Drink water!"
-    val gradualWakeup: Boolean = false,  // vibrate → soft → loud staged ramp
+    val gradualWakeup: Boolean = false,
+    val mathProblemCount: Int = 1,       // 1-10 problems for math challenges  // vibrate → soft → loud staged ramp
     val geofenceLat: Double? = null,     // location challenge target
     val geofenceLng: Double? = null,
     val geofenceRadius: Int = 100,       // metres for location proximity

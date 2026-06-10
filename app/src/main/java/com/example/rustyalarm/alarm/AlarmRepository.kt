@@ -90,6 +90,8 @@ class AlarmRepository(
                     put("groupTag", e.groupTag)
                     put("maxSnoozes", e.maxSnoozes)
                     put("message", e.message)
+                    put("gradualWakeup", e.gradualWakeup)
+                    put("mathProblemCount", e.mathProblemCount)
                 }
             )
         }
@@ -129,6 +131,8 @@ class AlarmRepository(
                 groupTag = if (o.isNull("groupTag")) null else o.optString("groupTag"),
                 maxSnoozes = o.optInt("maxSnoozes", 0),
                 message = o.optString("message", ""),
+                gradualWakeup = o.optBoolean("gradualWakeup", false),
+                mathProblemCount = o.optInt("mathProblemCount", 1),
             )
             save(alarm)
             count++

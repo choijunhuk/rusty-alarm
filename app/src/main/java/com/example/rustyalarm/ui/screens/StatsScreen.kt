@@ -1,4 +1,5 @@
 package com.example.rustyalarm.ui.screens
+import com.example.rustyalarm.ui.theme.screenBackgroundBrush
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -60,7 +61,7 @@ fun StatsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(listOf(Color(0xFF0D0D22), Color(0xFF0A0A1A)))
+                screenBackgroundBrush()
             ),
     ) {
         Scaffold(

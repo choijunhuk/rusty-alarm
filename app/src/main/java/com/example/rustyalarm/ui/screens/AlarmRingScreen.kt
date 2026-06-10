@@ -47,6 +47,7 @@ fun AlarmRingScreen(
     geofenceLat: Double? = null,
     geofenceLng: Double? = null,
     geofenceRadius: Int = 100,
+    mathProblemCount: Int = 1,
     onDismiss: () -> Unit,
     onSnooze: () -> Unit,
 ) {
@@ -62,11 +63,13 @@ fun AlarmRingScreen(
     )
 
     // ── challenge state ───────────────────────────────
-    val mathProblem = remember(challengeType) {
-        if (challengeType in listOf(ChallengeType.MATH_EASY, ChallengeType.MATH_MEDIUM, ChallengeType.MATH_HARD))
-            generateMathProblem(challengeType)
-        else null
+    val isMathChallenge = challengeType in listOf(
+        ChallengeType.MATH_EASY, ChallengeType.MATH_MEDIUM, ChallengeType.MATH_HARD,
+    )
+    var mathProblem by remember {
+        mutableStateOf<MathProblem?>(if (isMathChallenge) generateMathProblem(challengeType) else null)
     }
+    var mathSolvedCount by remember { mutableIntStateOf(0) }
     val typingPhrase = remember(challengeType) {
         if (challengeType == ChallengeType.TYPING) getTypingPhrase() else null
     }
@@ -143,8 +146,17 @@ fun AlarmRingScreen(
 
     fun checkMath() {
         val input = mathAnswer.trim().toIntOrNull()
-        if (input != null && mathProblem != null && input == mathProblem.answer) {
-            solved = true; onDismiss()
+        val current = mathProblem
+        if (input != null && current != null && input == current.answer) {
+            mathSolvedCount += 1
+            mathAnswer = ""
+            mathError = false
+            if (mathSolvedCount >= mathProblemCount) {
+                solved = true
+                onDismiss()
+            } else {
+                mathProblem = generateMathProblem(challengeType)
+            }
         } else { mathError = true; mathAnswer = "" }
     }
 
@@ -228,11 +240,19 @@ fun AlarmRingScreen(
             }
 
             // ── math challenge ────────────────────────
-            if (mathProblem != null && !solved) {
+            val currentMath = mathProblem
+            if (currentMath != null && !solved) {
                 ChallengeCard {
                     Text("알람을 끄려면 풀어야 해요!", style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary)
-                    Text(mathProblem.expression, fontSize = 36.sp, fontWeight = FontWeight.Bold,
+                    if (mathProblemCount > 1) {
+                        Text(
+                            "${mathSolvedCount + 1} / $mathProblemCount",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Text(currentMath.expression, fontSize = 36.sp, fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface)
                     OutlinedTextField(
                         value = mathAnswer,

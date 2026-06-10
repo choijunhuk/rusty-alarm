@@ -63,6 +63,7 @@ class AlarmReceiver : BroadcastReceiver() {
             // Pass-through new fields
             if (intent.hasExtra(EXTRA_GRADUAL_WAKEUP))
                 putExtra(EXTRA_GRADUAL_WAKEUP, intent.getBooleanExtra(EXTRA_GRADUAL_WAKEUP, false))
+            putExtra(EXTRA_MATH_PROBLEM_COUNT, intent.getIntExtra(EXTRA_MATH_PROBLEM_COUNT, 1))
             if (intent.hasExtra(EXTRA_GEOFENCE_LAT))
                 putExtra(EXTRA_GEOFENCE_LAT, intent.getDoubleExtra(EXTRA_GEOFENCE_LAT, 0.0))
             if (intent.hasExtra(EXTRA_GEOFENCE_LNG))
@@ -226,6 +227,7 @@ class AlarmReceiver : BroadcastReceiver() {
         const val EXTRA_MAX_SNOOZES    = "max_snoozes"
         const val EXTRA_MESSAGE        = "message"
         const val EXTRA_GRADUAL_WAKEUP = "gradual_wakeup"
+        const val EXTRA_MATH_PROBLEM_COUNT = "math_problem_count"
         const val EXTRA_GEOFENCE_LAT   = "geofence_lat"
         const val EXTRA_GEOFENCE_LNG   = "geofence_lng"
         const val EXTRA_GEOFENCE_RADIUS = "geofence_radius"

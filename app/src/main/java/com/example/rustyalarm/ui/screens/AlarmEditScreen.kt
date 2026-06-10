@@ -327,6 +327,24 @@ fun AlarmEditScreen(
                 }
             }
 
+            // Math problem count — only when MATH challenge selected
+            if (alarm.challengeType == ChallengeType.MATH_EASY ||
+                alarm.challengeType == ChallengeType.MATH_MEDIUM ||
+                alarm.challengeType == ChallengeType.MATH_HARD) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "수학 문제 ${alarm.mathProblemCount}개",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
+                Slider(
+                    value = alarm.mathProblemCount.toFloat(),
+                    onValueChange = { vm.updateMathProblemCount(it.toInt()) },
+                    valueRange = 1f..10f,
+                    steps = 8,
+                )
+            }
+
             // Location picker — only when LOCATION challenge selected
             if (alarm.challengeType == ChallengeType.LOCATION) {
                 Spacer(Modifier.height(8.dp))

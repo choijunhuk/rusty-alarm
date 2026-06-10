@@ -3,6 +3,7 @@ package com.example.rustyalarm
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -48,6 +49,7 @@ class AlarmRingActivity : ComponentActivity() {
     private val rampScope = MainScope()
     private var rampJob: Job? = null
     private var savedAlarmVolume: Int = -1
+    private var audioFocusRequest: AudioFocusRequest? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,6 +77,7 @@ class AlarmRingActivity : ComponentActivity() {
         val maxSnoozes    = intent.getIntExtra(AlarmReceiver.EXTRA_MAX_SNOOZES, 0)
         val message       = intent.getStringExtra(AlarmReceiver.EXTRA_MESSAGE) ?: ""
         val gradualWakeup = intent.getBooleanExtra(AlarmReceiver.EXTRA_GRADUAL_WAKEUP, false)
+        val mathProblemCount = intent.getIntExtra(AlarmReceiver.EXTRA_MATH_PROBLEM_COUNT, 1)
         val geofenceLat   = if (intent.hasExtra(AlarmReceiver.EXTRA_GEOFENCE_LAT))
             intent.getDoubleExtra(AlarmReceiver.EXTRA_GEOFENCE_LAT, 0.0) else null
         val geofenceLng   = if (intent.hasExtra(AlarmReceiver.EXTRA_GEOFENCE_LNG))
@@ -93,6 +96,7 @@ class AlarmRingActivity : ComponentActivity() {
 
         if (soundEnabled) {
             forceMaxAlarmVolume()
+            requestAudioFocusForAlarm()
             if (gradualWakeup) {
                 // Stage 1: 30s of vibrate-only prelude.
                 // Stage 2: sound kicks in at low volume, ramps to full over 60s.
@@ -125,6 +129,7 @@ class AlarmRingActivity : ComponentActivity() {
                         geofenceLat = geofenceLat,
                         geofenceLng = geofenceLng,
                         geofenceRadius = geofenceRadius,
+                        mathProblemCount = mathProblemCount,
                         onDismiss = {
                             stopSounds()
                             AlarmNotificationManager.cancelNotification(this, alarmId)
@@ -239,6 +244,41 @@ class AlarmRingActivity : ComponentActivity() {
         }
     }
 
+    private fun requestAudioFocusForAlarm() {
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val attrs = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+                val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                    .setAudioAttributes(attrs)
+                    .setOnAudioFocusChangeListener { /* ignore changes — alarm holds focus */ }
+                    .build()
+                audioFocusRequest = req
+                am.requestAudioFocus(req)
+            } else {
+                @Suppress("DEPRECATION")
+                am.requestAudioFocus(null, AudioManager.STREAM_ALARM,
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+            }
+        } catch (_: Throwable) { /* best-effort */ }
+    }
+
+    private fun abandonAudioFocus() {
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                audioFocusRequest?.let { am.abandonAudioFocusRequest(it) }
+            } else {
+                @Suppress("DEPRECATION")
+                am.abandonAudioFocus(null)
+            }
+        } catch (_: Throwable) {}
+        audioFocusRequest = null
+    }
+
     private fun forceMaxAlarmVolume() {
         try {
             val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -268,6 +308,7 @@ class AlarmRingActivity : ComponentActivity() {
         vibrator?.cancel()
         vibrator = null
         restoreAlarmVolume()
+        abandonAudioFocus()
     }
 
     override fun onDestroy() {
