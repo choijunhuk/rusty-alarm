@@ -23,6 +23,10 @@ class PetViewModel(private val dao: PetDao) : ViewModel() {
         viewModelScope.launch { dao.rename(newName.trim()) }
     }
 
+    fun setSkin(skinName: String) {
+        viewModelScope.launch { dao.setSkin(skinName) }
+    }
+
     class Factory(private val dao: PetDao) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =

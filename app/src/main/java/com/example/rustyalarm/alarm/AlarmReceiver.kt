@@ -60,6 +60,14 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(EXTRA_VOLUME_RAMP_SECONDS, volumeRamp)
             putExtra(EXTRA_MAX_SNOOZES, maxSnoozes)
             putExtra(EXTRA_MESSAGE, message)
+            // Pass-through new fields
+            if (intent.hasExtra(EXTRA_GRADUAL_WAKEUP))
+                putExtra(EXTRA_GRADUAL_WAKEUP, intent.getBooleanExtra(EXTRA_GRADUAL_WAKEUP, false))
+            if (intent.hasExtra(EXTRA_GEOFENCE_LAT))
+                putExtra(EXTRA_GEOFENCE_LAT, intent.getDoubleExtra(EXTRA_GEOFENCE_LAT, 0.0))
+            if (intent.hasExtra(EXTRA_GEOFENCE_LNG))
+                putExtra(EXTRA_GEOFENCE_LNG, intent.getDoubleExtra(EXTRA_GEOFENCE_LNG, 0.0))
+            putExtra(EXTRA_GEOFENCE_RADIUS, intent.getIntExtra(EXTRA_GEOFENCE_RADIUS, 100))
         }
         runCatching { context.startActivity(ringActivity) }
 
@@ -217,6 +225,10 @@ class AlarmReceiver : BroadcastReceiver() {
         const val EXTRA_VOLUME_RAMP_SECONDS = "volume_ramp_seconds"
         const val EXTRA_MAX_SNOOZES    = "max_snoozes"
         const val EXTRA_MESSAGE        = "message"
+        const val EXTRA_GRADUAL_WAKEUP = "gradual_wakeup"
+        const val EXTRA_GEOFENCE_LAT   = "geofence_lat"
+        const val EXTRA_GEOFENCE_LNG   = "geofence_lng"
+        const val EXTRA_GEOFENCE_RADIUS = "geofence_radius"
 
         const val SNOOZE_ID_OFFSET     = 100_000L
         private const val PREFS        = "rusty_alarm_stats"

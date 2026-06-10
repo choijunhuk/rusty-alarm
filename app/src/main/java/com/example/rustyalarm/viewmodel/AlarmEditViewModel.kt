@@ -50,6 +50,14 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
     fun updateGroupTag(tag: String?)            { _alarm.value = _alarm.value.copy(groupTag = tag?.ifBlank { null }) }
     fun updateMaxSnoozes(n: Int)                { _alarm.value = _alarm.value.copy(maxSnoozes = n) }
     fun updateMessage(text: String)             { _alarm.value = _alarm.value.copy(message = text) }
+    fun updateGradualWakeup(g: Boolean)         { _alarm.value = _alarm.value.copy(gradualWakeup = g) }
+    fun updateGeofence(lat: Double?, lng: Double?, radius: Int? = null) {
+        _alarm.value = _alarm.value.copy(
+            geofenceLat = lat,
+            geofenceLng = lng,
+            geofenceRadius = radius ?: _alarm.value.geofenceRadius,
+        )
+    }
 
     fun toggleRepeatDay(day: Int) {
         val days = _alarm.value.repeatDays.toMutableList()

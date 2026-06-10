@@ -27,4 +27,7 @@ interface PetDao {
 
     @Query("UPDATE pet SET name = :name WHERE id = 1")
     suspend fun rename(name: String)
+
+    @Query("UPDATE pet SET skin = :skin WHERE id = 1")
+    suspend fun setSkin(skin: String)
 }

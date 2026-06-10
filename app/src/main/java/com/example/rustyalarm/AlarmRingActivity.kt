@@ -74,6 +74,12 @@ class AlarmRingActivity : ComponentActivity() {
         val volumeRamp    = intent.getIntExtra(AlarmReceiver.EXTRA_VOLUME_RAMP_SECONDS, 0)
         val maxSnoozes    = intent.getIntExtra(AlarmReceiver.EXTRA_MAX_SNOOZES, 0)
         val message       = intent.getStringExtra(AlarmReceiver.EXTRA_MESSAGE) ?: ""
+        val gradualWakeup = intent.getBooleanExtra(AlarmReceiver.EXTRA_GRADUAL_WAKEUP, false)
+        val geofenceLat   = if (intent.hasExtra(AlarmReceiver.EXTRA_GEOFENCE_LAT))
+            intent.getDoubleExtra(AlarmReceiver.EXTRA_GEOFENCE_LAT, 0.0) else null
+        val geofenceLng   = if (intent.hasExtra(AlarmReceiver.EXTRA_GEOFENCE_LNG))
+            intent.getDoubleExtra(AlarmReceiver.EXTRA_GEOFENCE_LNG, 0.0) else null
+        val geofenceRadius = intent.getIntExtra(AlarmReceiver.EXTRA_GEOFENCE_RADIUS, 100)
         val challengeName = intent.getStringExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE)
             ?: ChallengeType.NONE.name
         val challengeType = runCatching { ChallengeType.valueOf(challengeName) }
@@ -87,7 +93,16 @@ class AlarmRingActivity : ComponentActivity() {
 
         if (soundEnabled) {
             forceMaxAlarmVolume()
-            startAlarmSound(ringtoneUri, volumeRamp)
+            if (gradualWakeup) {
+                // Stage 1: 30s of vibrate-only prelude.
+                // Stage 2: sound kicks in at low volume, ramps to full over 60s.
+                rampScope.launch {
+                    delay(30_000)
+                    startAlarmSound(ringtoneUri, 60)
+                }
+            } else {
+                startAlarmSound(ringtoneUri, volumeRamp)
+            }
         }
         if (vibrate) startVibration()
 
@@ -107,6 +122,9 @@ class AlarmRingActivity : ComponentActivity() {
                         challengeType = challengeType,
                         message       = message,
                         snoozesRemaining = snoozesRemaining,
+                        geofenceLat = geofenceLat,
+                        geofenceLng = geofenceLng,
+                        geofenceRadius = geofenceRadius,
                         onDismiss = {
                             stopSounds()
                             AlarmNotificationManager.cancelNotification(this, alarmId)

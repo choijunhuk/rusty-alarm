@@ -1,5 +1,6 @@
 package com.example.rustyalarm.ui.screens
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.media.RingtoneManager
@@ -269,6 +270,10 @@ fun AlarmEditScreen(
                 steps = 9,
             )
 
+            // Gradual wakeup
+            ToggleRow("단계적 알람 (진동 30초 → 약하게 → 크게)",
+                alarm.gradualWakeup, vm::updateGradualWakeup)
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
 
             // ── Advanced expander ─────────────────────
@@ -319,6 +324,41 @@ fun AlarmEditScreen(
                             contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                         )
                     }
+                }
+            }
+
+            // Location picker — only when LOCATION challenge selected
+            if (alarm.challengeType == ChallengeType.LOCATION) {
+                Spacer(Modifier.height(8.dp))
+                val lat = alarm.geofenceLat
+                val lng = alarm.geofenceLng
+                Text(
+                    if (lat != null && lng != null)
+                        "위치 — %.5f, %.5f".format(lat, lng)
+                    else "위치 미지정",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
+                Text(
+                    "허용 반경 ${alarm.geofenceRadius}m",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
+                Slider(
+                    value = alarm.geofenceRadius.toFloat(),
+                    onValueChange = { vm.updateGeofence(lat, lng, it.toInt()) },
+                    valueRange = 20f..500f,
+                    steps = 9,
+                )
+                OutlinedButton(
+                    onClick = {
+                        captureCurrentLocation(context) { la, lo ->
+                            vm.updateGeofence(la, lo)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("📍 현재 위치 사용")
                 }
             }
 
@@ -407,6 +447,41 @@ private fun SectionLabel(text: String) {
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.secondary,
     )
+}
+
+@SuppressLint("MissingPermission")
+private fun captureCurrentLocation(
+    context: android.content.Context,
+    onResult: (Double, Double) -> Unit,
+) {
+    if (androidx.core.content.ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.ACCESS_FINE_LOCATION,
+        ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+    ) {
+        android.widget.Toast.makeText(
+            context, "위치 권한이 필요해요. 설정에서 허용하세요.",
+            android.widget.Toast.LENGTH_LONG,
+        ).show()
+        return
+    }
+    com.google.android.gms.location.LocationServices
+        .getFusedLocationProviderClient(context)
+        .getCurrentLocation(
+            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null,
+        )
+        .addOnSuccessListener { loc ->
+            if (loc != null) onResult(loc.latitude, loc.longitude)
+            else android.widget.Toast.makeText(
+                context, "위치를 가져올 수 없어요.",
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
+        }
+        .addOnFailureListener {
+            android.widget.Toast.makeText(
+                context, "위치 가져오기 실패: ${it.localizedMessage}",
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
+        }
 }
 
 @Composable

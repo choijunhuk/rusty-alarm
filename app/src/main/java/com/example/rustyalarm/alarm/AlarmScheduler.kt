@@ -106,6 +106,10 @@ class AlarmScheduler(private val context: Context) {
             putExtra(AlarmReceiver.EXTRA_VOLUME_RAMP_SECONDS, alarm.volumeRampSeconds)
             putExtra(AlarmReceiver.EXTRA_MAX_SNOOZES, alarm.maxSnoozes)
             putExtra(AlarmReceiver.EXTRA_MESSAGE, alarm.message)
+            putExtra(AlarmReceiver.EXTRA_GRADUAL_WAKEUP, alarm.gradualWakeup)
+            alarm.geofenceLat?.let { putExtra(AlarmReceiver.EXTRA_GEOFENCE_LAT, it) }
+            alarm.geofenceLng?.let { putExtra(AlarmReceiver.EXTRA_GEOFENCE_LNG, it) }
+            putExtra(AlarmReceiver.EXTRA_GEOFENCE_RADIUS, alarm.geofenceRadius)
         }
 
     private fun buildSmartStartIntent(alarm: Alarm, deadlineMillis: Long): PendingIntent {

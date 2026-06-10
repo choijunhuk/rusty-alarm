@@ -3,6 +3,12 @@ package com.example.rustyalarm.pet
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+enum class PetSkin(val label: String, val unlockLevel: Int) {
+    DEFAULT("기본", 0),
+    GOLDEN("황금", 5),
+    RAINBOW("무지개", 10),
+}
+
 @Entity(tableName = "pet")
 data class Pet(
     @PrimaryKey
@@ -10,9 +16,11 @@ data class Pet(
     val name: String = "버디",
     val exp: Int = 0,
     val lastFedAt: Long = 0L,
+    val skin: String = PetSkin.DEFAULT.name,
     val createdAt: Long = System.currentTimeMillis(),
 ) {
     val level: Int get() = exp / 100
+    val skinEnum: PetSkin get() = runCatching { PetSkin.valueOf(skin) }.getOrDefault(PetSkin.DEFAULT)
 
     val stage: PetStage get() = when (level) {
         0     -> PetStage.EGG

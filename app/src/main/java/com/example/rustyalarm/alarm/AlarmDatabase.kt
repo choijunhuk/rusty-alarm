@@ -9,7 +9,7 @@ import com.example.rustyalarm.pet.PetDao
 
 @Database(
     entities = [AlarmEntity::class, AlarmEvent::class, Pet::class],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class AlarmDatabase : RoomDatabase() {

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rustyalarm.pet.PetDao
+import com.example.rustyalarm.pet.PetSkin
 import com.example.rustyalarm.viewmodel.PetViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,6 +33,7 @@ fun PetScreen(
     val pet by vm.pet.collectAsStateWithLifecycle()
     var renameDialog by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }
+    var skinDialog by remember { mutableStateOf(false) }
 
     val bounce = rememberInfiniteTransition(label = "pet")
     val s by bounce.animateFloat(
@@ -85,9 +87,14 @@ fun PetScreen(
 
                 Spacer(Modifier.height(24.dp))
 
+                val displayEmoji = when (p.skinEnum) {
+                    PetSkin.GOLDEN  -> "✨${p.stage.emoji}✨"
+                    PetSkin.RAINBOW -> "🌈${p.stage.emoji}🌈"
+                    else -> p.stage.emoji
+                }
                 Text(
-                    p.stage.emoji,
-                    fontSize = 140.sp,
+                    displayEmoji,
+                    fontSize = 110.sp,
                     modifier = Modifier.scale(s),
                 )
 
@@ -151,8 +158,59 @@ fun PetScreen(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                     }
                 }
+
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { skinDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("🎨 스킨 변경 (현재: ${p.skinEnum.label})")
+                }
             }
         }
+    }
+
+    if (skinDialog) {
+        val current = pet?.skinEnum ?: PetSkin.DEFAULT
+        val level = pet?.level ?: 0
+        AlertDialog(
+            onDismissRequest = { skinDialog = false },
+            title = { Text("펫 스킨") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PetSkin.entries.forEach { skin ->
+                        val unlocked = level >= skin.unlockLevel
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column {
+                                Text(skin.label, fontWeight = FontWeight.Medium)
+                                Text(
+                                    if (unlocked) "사용 가능"
+                                    else "Lv ${skin.unlockLevel} 부터",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                )
+                            }
+                            FilledTonalButton(
+                                onClick = {
+                                    vm.setSkin(skin.name)
+                                    skinDialog = false
+                                },
+                                enabled = unlocked && current != skin,
+                            ) {
+                                Text(if (current == skin) "사용 중" else "선택")
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { skinDialog = false }) { Text("닫기") }
+            },
+        )
     }
 
     if (renameDialog) {

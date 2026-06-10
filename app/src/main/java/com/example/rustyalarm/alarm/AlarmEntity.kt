@@ -23,6 +23,10 @@ data class AlarmEntity(
     val groupTag: String? = null,
     val maxSnoozes: Int = 0,
     val message: String = "",
+    val gradualWakeup: Boolean = false,
+    val geofenceLat: Double? = null,
+    val geofenceLng: Double? = null,
+    val geofenceRadius: Int = 100,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 ) {
@@ -46,6 +50,10 @@ data class AlarmEntity(
         groupTag = groupTag,
         maxSnoozes = maxSnoozes,
         message = message,
+        gradualWakeup = gradualWakeup,
+        geofenceLat = geofenceLat,
+        geofenceLng = geofenceLng,
+        geofenceRadius = geofenceRadius,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
@@ -69,6 +77,10 @@ data class AlarmEntity(
             groupTag = alarm.groupTag,
             maxSnoozes = alarm.maxSnoozes,
             message = alarm.message,
+            gradualWakeup = alarm.gradualWakeup,
+            geofenceLat = alarm.geofenceLat,
+            geofenceLng = alarm.geofenceLng,
+            geofenceRadius = alarm.geofenceRadius,
             createdAt = alarm.createdAt,
             updatedAt = alarm.updatedAt,
         )

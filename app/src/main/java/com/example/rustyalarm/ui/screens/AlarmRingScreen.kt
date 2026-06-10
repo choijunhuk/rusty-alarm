@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import com.example.rustyalarm.alarm.*
 import com.example.rustyalarm.fortune.Fortune
 import com.example.rustyalarm.rust.RustAlarmCore
+import com.example.rustyalarm.ui.components.LocationChallengeCard
+import com.example.rustyalarm.ui.components.PhotoChallengeCard
 import com.example.rustyalarm.ui.components.TetrisChallenge
 import kotlin.math.abs
 
@@ -42,6 +44,9 @@ fun AlarmRingScreen(
     challengeType: ChallengeType = ChallengeType.NONE,
     message: String = "",
     snoozesRemaining: Int = Int.MAX_VALUE,
+    geofenceLat: Double? = null,
+    geofenceLng: Double? = null,
+    geofenceRadius: Int = 100,
     onDismiss: () -> Unit,
     onSnooze: () -> Unit,
 ) {
@@ -285,6 +290,33 @@ fun AlarmRingScreen(
                         modifier = Modifier.fillMaxWidth().height(8.dp),
                         color = MaterialTheme.colorScheme.primary,
                     )
+                }
+            }
+
+            // ── photo challenge ───────────────────────
+            if (challengeType == ChallengeType.PHOTO && !solved) {
+                ChallengeCard {
+                    PhotoChallengeCard(onSuccess = {
+                        solved = true
+                        onDismiss()
+                    })
+                }
+            }
+
+            // ── location challenge ────────────────────
+            if (challengeType == ChallengeType.LOCATION && !solved) {
+                ChallengeCard {
+                    if (geofenceLat != null && geofenceLng != null) {
+                        LocationChallengeCard(
+                            targetLat = geofenceLat,
+                            targetLng = geofenceLng,
+                            radiusMeters = geofenceRadius,
+                            onSuccess = { solved = true; onDismiss() },
+                        )
+                    } else {
+                        Text("위치가 설정되지 않은 알람이에요.",
+                            color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
 

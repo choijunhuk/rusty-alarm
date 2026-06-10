@@ -11,6 +11,8 @@ enum class ChallengeType(val label: String) {
     TYPING("타이핑 챌린지"),
     TETRIS("테트리스 한 줄"),
     STEP_COUNT("걷기 20걸음"),
+    PHOTO("사진 인증"),
+    LOCATION("위치 인증"),
 }
 
 data class Alarm(
@@ -31,6 +33,10 @@ data class Alarm(
     val groupTag: String? = null,
     val maxSnoozes: Int = 0,          // 0 = unlimited
     val message: String = "",         // shown on ring screen, e.g. "Drink water!"
+    val gradualWakeup: Boolean = false,  // vibrate → soft → loud staged ramp
+    val geofenceLat: Double? = null,     // location challenge target
+    val geofenceLng: Double? = null,
+    val geofenceRadius: Int = 100,       // metres for location proximity
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 )
