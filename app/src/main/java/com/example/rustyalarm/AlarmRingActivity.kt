@@ -96,15 +96,18 @@ class AlarmRingActivity : ComponentActivity() {
                             AlarmNotificationManager.cancelNotification(this, alarmId)
                             val responseSec = (System.currentTimeMillis() - firedAt) / 1000L
                             CoroutineScope(Dispatchers.IO).launch {
-                                AlarmDatabase.getDatabase(this@AlarmRingActivity)
-                                    .alarmEventDao().insert(
-                                        AlarmEvent(
-                                            alarmId = alarmId,
-                                            eventType = AlarmEventType.DISMISSED.name,
-                                            responseSeconds = responseSec,
-                                            challengeType = challengeType.name,
-                                        )
+                                val db = AlarmDatabase.getDatabase(this@AlarmRingActivity)
+                                db.alarmEventDao().insert(
+                                    AlarmEvent(
+                                        alarmId = alarmId,
+                                        eventType = AlarmEventType.DISMISSED.name,
+                                        responseSeconds = responseSec,
+                                        challengeType = challengeType.name,
                                     )
+                                )
+                                // Pet: +10 EXP for dismiss, +5 bonus when a challenge gated the dismiss
+                                val bonus = if (challengeType != ChallengeType.NONE) 5 else 0
+                                db.petDao().addExp(10 + bonus)
                             }
                             finish()
                         },

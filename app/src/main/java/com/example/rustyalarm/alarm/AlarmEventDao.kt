@@ -59,4 +59,17 @@ interface AlarmEventDao {
 
     @Query("DELETE FROM alarm_events WHERE alarmId = :alarmId")
     suspend fun deleteByAlarmId(alarmId: Long)
+
+    /** Distinct local-day keys with a DISMISSED event, newest-first. */
+    @Query("""
+        SELECT DISTINCT strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch', 'localtime') AS dayKey
+        FROM alarm_events
+        WHERE eventType = 'DISMISSED'
+        ORDER BY dayKey DESC
+    """)
+    suspend fun dismissedDayKeys(): List<String>
+
+    /** All events newer than [sinceMillis]. */
+    @Query("SELECT * FROM alarm_events WHERE timestamp >= :sinceMillis ORDER BY timestamp ASC")
+    suspend fun eventsSince(sinceMillis: Long): List<AlarmEvent>
 }

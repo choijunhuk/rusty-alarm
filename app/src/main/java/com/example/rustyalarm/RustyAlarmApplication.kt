@@ -5,6 +5,11 @@ import com.example.rustyalarm.alarm.AlarmDatabase
 import com.example.rustyalarm.alarm.AlarmNotificationManager
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.AlarmScheduler
+import com.example.rustyalarm.pet.Pet
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class RustyAlarmApplication : Application() {
 
@@ -21,5 +26,9 @@ class RustyAlarmApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         AlarmNotificationManager.createNotificationChannel(this)
+        // Ensure the singleton pet row exists (no-op if already inserted)
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            database.petDao().insert(Pet())
+        }
     }
 }

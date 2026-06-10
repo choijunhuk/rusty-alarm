@@ -22,12 +22,17 @@ import com.example.rustyalarm.auth.AuthRepository
 import com.example.rustyalarm.auth.AuthViewModel
 import com.example.rustyalarm.prefs.ThemeMode
 import com.example.rustyalarm.prefs.ThemePreferences
+import com.example.rustyalarm.prefs.UserPreferences
+import com.example.rustyalarm.prefs.UserProfile
 import com.example.rustyalarm.ui.navigation.AppNavigation
 import com.example.rustyalarm.ui.screens.LockScreen
+import com.example.rustyalarm.ui.screens.OnboardingScreen
 import com.example.rustyalarm.ui.screens.PinSetupScreen
 import com.example.rustyalarm.ui.theme.RustyAlarmTheme
 
 class MainActivity : FragmentActivity() {
+
+    private var authVmRef: AuthViewModel? = null
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -35,55 +40,69 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         requestNotificationPermissionIfNeeded()
 
         val app        = application as RustyAlarmApplication
         val repository = app.repository
         val eventDao   = app.database.alarmEventDao()
+        val petDao     = app.database.petDao()
         val authRepo   = AuthRepository(this)
         val authVm     = ViewModelProvider(this, AuthViewModel.Factory(authRepo))[AuthViewModel::class.java]
         authVmRef = authVm
         val themePrefs = ThemePreferences(applicationContext)
+        val userPrefs  = UserPreferences(applicationContext)
 
         setContent {
             val themeMode by themePrefs.mode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
+            val userProfile by userPrefs.profile.collectAsStateWithLifecycle(initialValue = UserProfile())
             RustyAlarmTheme(mode = themeMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     val unlocked by authVm.unlocked.collectAsStateWithLifecycle()
-                    val hasPin by authVm.hasPin.collectAsStateWithLifecycle()
+                    val hasPin   by authVm.hasPin.collectAsStateWithLifecycle()
                     val biometricEnabled = authVm.biometricEnabled()
                     val canBio = remember { canUseBiometric() }
 
-                    // Auto-try biometric on launch (only after PIN exists, lock state, opt-in flag)
-                    LaunchedEffect(unlocked, hasPin) {
-                        if (!unlocked && hasPin && biometricEnabled && canBio) {
+                    // Only auto-prompt biometric when app lock is actively engaged
+                    LaunchedEffect(unlocked, hasPin, userProfile.appLockEnabled) {
+                        if (userProfile.appLockEnabled && hasPin && !unlocked
+                            && biometricEnabled && canBio) {
                             promptBiometric(authVm)
                         }
                     }
 
                     when {
-                        !hasPin -> PinSetupScreen(
-                            vm = authVm,
-                            onComplete = { /* unlocked flag flips inside setPin */ },
+                        // First-launch onboarding
+                        !userProfile.hasOnboarded -> OnboardingScreen(
+                            userPrefs = userPrefs,
+                            onComplete = {},   // hasOnboarded flips inside completeOnboarding
                         )
-                        !unlocked -> LockScreen(
+
+                        // App lock turned on but no PIN yet → one-time setup
+                        userProfile.appLockEnabled && !hasPin -> PinSetupScreen(
+                            vm = authVm,
+                            onComplete = {},
+                        )
+
+                        // App lock + PIN exists + currently locked
+                        userProfile.appLockEnabled && hasPin && !unlocked -> LockScreen(
                             vm = authVm,
                             biometricEnabled = biometricEnabled && canBio,
                             onBiometric = { promptBiometric(authVm) },
                         )
+
+                        // Normal app
                         else -> AppNavigation(
                             repository = repository,
-                            eventDao = eventDao,
-                            authVm = authVm,
+                            eventDao   = eventDao,
+                            petDao     = petDao,
+                            authVm     = authVm,
                             themePrefs = themePrefs,
+                            userPrefs  = userPrefs,
+                            userProfile = userProfile,
                             canUseBiometric = canBio,
-                            onChangePin = {
-                                // resetPin already flipped hasPin=false, navigation will surface PinSetupScreen automatically
-                            },
                         )
                     }
                 }
@@ -91,15 +110,10 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    private var authVmRef: AuthViewModel? = null
-
     private fun canUseBiometric(): Boolean {
         val mgr = BiometricManager.from(this)
-        // Prefer STRONG. Fall back to STRONG+CREDENTIAL only on Android 11+ where
-        // setAllowedAuthenticators(STRONG|CREDENTIAL) is supported.
-        val strongOnly = mgr.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
+        return mgr.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
             BiometricManager.BIOMETRIC_SUCCESS
-        return strongOnly
     }
 
     private fun promptBiometric(authVm: AuthViewModel) {
@@ -121,8 +135,8 @@ class MainActivity : FragmentActivity() {
 
     override fun onStop() {
         super.onStop()
-        // Re-lock when leaving the foreground so an attacker with physical access
-        // can't simply re-open the task. Matches the security-review guidance.
+        // Only re-lock when the user has explicitly opted into app lock
+        // (avoid surprising users who never enabled it)
         authVmRef?.lock()
     }
 

@@ -4,15 +4,18 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.rustyalarm.pet.Pet
+import com.example.rustyalarm.pet.PetDao
 
 @Database(
-    entities = [AlarmEntity::class, AlarmEvent::class],
-    version = 5,
+    entities = [AlarmEntity::class, AlarmEvent::class, Pet::class],
+    version = 6,
     exportSchema = false,
 )
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
     abstract fun alarmEventDao(): AlarmEventDao
+    abstract fun petDao(): PetDao
 
     companion object {
         @Volatile

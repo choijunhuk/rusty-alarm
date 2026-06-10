@@ -9,7 +9,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
@@ -36,9 +38,12 @@ import java.util.*
 @Composable
 fun AlarmListScreen(
     repository: AlarmRepository,
+    nickname: String = "사용자",
     onAddAlarm: () -> Unit,
     onEditAlarm: (Alarm) -> Unit,
     onOpenStats: () -> Unit = {},
+    onOpenReport: () -> Unit = {},
+    onOpenPet: () -> Unit = {},
     onOpenSettings: (() -> Unit)? = null,
 ) {
     val vm: AlarmListViewModel = viewModel(factory = AlarmListViewModel.Factory(repository))
@@ -77,6 +82,20 @@ fun AlarmListScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = onOpenPet) {
+                            Icon(
+                                Icons.Default.Pets,
+                                contentDescription = "펫",
+                                tint = MaterialTheme.colorScheme.secondary,
+                            )
+                        }
+                        IconButton(onClick = onOpenReport) {
+                            Icon(
+                                Icons.Default.Assessment,
+                                contentDescription = "리포트",
+                                tint = MaterialTheme.colorScheme.secondary,
+                            )
+                        }
                         IconButton(onClick = onOpenStats) {
                             Icon(
                                 Icons.Default.Insights,
@@ -130,7 +149,7 @@ fun AlarmListScreen(
                             letterSpacing = 2.sp,
                         )
                         Text(
-                            text = greetingText(),
+                            text = "$nickname 님, ${greetingText()}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.secondary,
                         )

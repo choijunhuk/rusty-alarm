@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,6 +31,8 @@ import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.auth.AuthViewModel
 import com.example.rustyalarm.prefs.ThemeMode
 import com.example.rustyalarm.prefs.ThemePreferences
+import com.example.rustyalarm.prefs.UserPreferences
+import com.example.rustyalarm.prefs.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,21 +44,22 @@ fun SettingsScreen(
     vm: AuthViewModel,
     canUseBiometric: Boolean,
     themePrefs: ThemePreferences,
+    userPrefs: UserPreferences,
+    userProfile: UserProfile,
     repository: AlarmRepository,
     onBack: () -> Unit,
-    onChangePin: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = remember { CoroutineScope(Dispatchers.Main) }
 
     var biometricOn by remember { mutableStateOf(vm.biometricEnabled()) }
-    var showResetDialog by remember { mutableStateOf(false) }
-    var reauthPin by remember { mutableStateOf("") }
-    var reauthError by remember { mutableStateOf(false) }
     var importMessage by remember { mutableStateOf<String?>(null) }
+    var nicknameDialog by remember { mutableStateOf(false) }
+    var nicknameDraft by remember { mutableStateOf(userProfile.nickname) }
+
+    val hasPin by vm.hasPin.collectAsStateWithLifecycle()
     val themeMode by themePrefs.mode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
 
-    // Export launcher
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
@@ -64,17 +68,13 @@ fun SettingsScreen(
                 runCatching {
                     val json = withContext(Dispatchers.IO) { repository.exportToJson() }
                     withContext(Dispatchers.IO) {
-                        context.contentResolver.openOutputStream(uri)?.use {
-                            it.write(json.toByteArray())
-                        }
+                        context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
                     }
                     importMessage = "백업 저장 완료"
                 }.onFailure { importMessage = "백업 실패: ${it.message}" }
             }
         }
     }
-
-    // Import launcher
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -119,9 +119,36 @@ fun SettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // ── Profile ──────────────────────────
+                SectionTitle("프로필")
+                SettingsCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.secondary)
+                            Column {
+                                Text("닉네임", fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface)
+                                Text(userProfile.nickname,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                            }
+                        }
+                        TextButton(onClick = {
+                            nicknameDraft = userProfile.nickname
+                            nicknameDialog = true
+                        }) { Text("변경") }
+                    }
+                }
+
                 // ── Theme ────────────────────────────
-                Text("화면", style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.secondary)
+                SectionTitle("화면")
                 SettingsCard {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -136,16 +163,12 @@ fun SettingsScreen(
                         }
                         ThemeMode.entries.forEach { m ->
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 RadioButton(
                                     selected = themeMode == m,
-                                    onClick = {
-                                        scope.launch { themePrefs.setMode(m) }
-                                    },
+                                    onClick = { scope.launch { themePrefs.setMode(m) } },
                                 )
                                 Text(
                                     when (m) {
@@ -161,44 +184,9 @@ fun SettingsScreen(
                 }
 
                 // ── Security ─────────────────────────
-                Text("보안", style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.secondary)
-                SettingsCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(Icons.Default.Fingerprint, null,
-                                tint = MaterialTheme.colorScheme.secondary)
-                            Column {
-                                Text("생체 인증", fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface)
-                                Text(
-                                    if (canUseBiometric) "지문 또는 화면 잠금으로 빠르게 해제"
-                                    else "이 기기에서 지원하지 않음",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = biometricOn,
-                            enabled = canUseBiometric,
-                            onCheckedChange = {
-                                biometricOn = it
-                                vm.setBiometricEnabled(it)
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                            ),
-                        )
-                    }
-                }
+                SectionTitle("보안")
+
+                // App lock master toggle
                 SettingsCard {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -211,16 +199,78 @@ fun SettingsScreen(
                         ) {
                             Icon(Icons.Default.Lock, null,
                                 tint = MaterialTheme.colorScheme.secondary)
-                            Text("PIN 변경", fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface)
+                            Column {
+                                Text("앱 잠금 사용", fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface)
+                                Text(
+                                    if (userProfile.appLockEnabled)
+                                        "다음 실행 시 PIN으로 잠금"
+                                    else "켜면 PIN을 새로 설정하게 됩니다",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                )
+                            }
                         }
-                        TextButton(onClick = { showResetDialog = true }) { Text("변경") }
+                        Switch(
+                            checked = userProfile.appLockEnabled,
+                            onCheckedChange = { on ->
+                                scope.launch {
+                                    userPrefs.setAppLockEnabled(on)
+                                    if (!on) {
+                                        vm.resetPin()
+                                        biometricOn = false
+                                        vm.setBiometricEnabled(false)
+                                    }
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        )
+                    }
+                }
+
+                if (userProfile.appLockEnabled) {
+                    SettingsCard {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Icon(Icons.Default.Fingerprint, null,
+                                    tint = MaterialTheme.colorScheme.secondary)
+                                Column {
+                                    Text("생체 인증", fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface)
+                                    Text(
+                                        if (canUseBiometric) "지문으로 빠르게 해제"
+                                        else "이 기기에서 지원하지 않음",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = biometricOn && hasPin,
+                                enabled = canUseBiometric && hasPin,
+                                onCheckedChange = {
+                                    biometricOn = it
+                                    vm.setBiometricEnabled(it)
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                ),
+                            )
+                        }
                     }
                 }
 
                 // ── Backup ───────────────────────────
-                Text("백업", style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.secondary)
+                SectionTitle("백업")
                 SettingsCard {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -266,62 +316,38 @@ fun SettingsScreen(
         }
     }
 
-    if (showResetDialog) {
+    if (nicknameDialog) {
         AlertDialog(
-            onDismissRequest = {
-                showResetDialog = false
-                reauthPin = ""
-                reauthError = false
-            },
-            title = { Text("PIN 변경") },
+            onDismissRequest = { nicknameDialog = false },
+            title = { Text("닉네임 변경") },
             text = {
-                Column {
-                    Text("보안을 위해 현재 PIN을 입력하세요.")
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = reauthPin,
-                        onValueChange = {
-                            if (it.length <= 8 && it.all { c -> c.isDigit() }) {
-                                reauthPin = it
-                                reauthError = false
-                            }
-                        },
-                        label = { Text("현재 PIN") },
-                        isError = reauthError,
-                        supportingText = if (reauthError) {{ Text("PIN이 일치하지 않아요.") }} else null,
-                        singleLine = true,
-                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword,
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                OutlinedTextField(
+                    value = nicknameDraft,
+                    onValueChange = { if (it.length <= 12) nicknameDraft = it },
+                    singleLine = true,
+                    label = { Text("새 닉네임") },
+                )
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (vm.verifyCurrentPin(reauthPin)) {
-                        showResetDialog = false
-                        reauthPin = ""
-                        reauthError = false
-                        vm.resetPin()
-                        onChangePin()
-                    } else {
-                        reauthError = true
-                    }
-                }) {
-                    Text("초기화", color = MaterialTheme.colorScheme.error)
-                }
+                    scope.launch { userPrefs.setNickname(nicknameDraft) }
+                    nicknameDialog = false
+                }) { Text("저장") }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showResetDialog = false
-                    reauthPin = ""
-                    reauthError = false
-                }) { Text("취소") }
+                TextButton(onClick = { nicknameDialog = false }) { Text("취소") }
             },
         )
     }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.secondary,
+    )
 }
 
 @Composable
