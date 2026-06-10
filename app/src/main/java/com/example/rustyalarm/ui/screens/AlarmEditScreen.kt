@@ -58,6 +58,7 @@ fun AlarmEditScreen(
     var showDeleteDialog       by remember { mutableStateOf(false) }
     var challengeMenuExpanded  by remember { mutableStateOf(false) }
     var showDatePicker         by remember { mutableStateOf(false) }
+    var advancedExpanded       by remember { mutableStateOf(false) }
 
     // Ringtone picker launcher
     val context = LocalContext.current
@@ -246,20 +247,32 @@ fun AlarmEditScreen(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
 
-            // ── Group tag ──────────────────────────────
-            SectionLabel("그룹 (선택)")
-            OutlinedTextField(
-                value = alarm.groupTag ?: "",
-                onValueChange = { vm.updateGroupTag(it) },
-                label = { Text("예: 평일 출근, 주말") },
-                singleLine = true,
+            // ── Advanced expander ─────────────────────
+            TextButton(
+                onClick = { advancedExpanded = !advancedExpanded },
                 modifier = Modifier.fillMaxWidth(),
-            )
+            ) {
+                Text(
+                    if (advancedExpanded) "▲ 고급 설정 접기" else "▼ 고급 설정 펼치기",
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+            if (advancedExpanded) {
+                // ── Group tag ──────────────────────────────
+                SectionLabel("그룹 (선택)")
+                OutlinedTextField(
+                    value = alarm.groupTag ?: "",
+                    onValueChange = { vm.updateGroupTag(it) },
+                    label = { Text("예: 평일 출근, 주말") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-            // ── Challenge section ─────────────────────
-            SectionLabel("알람 끄기 챌린지")
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+
+                // ── Challenge section ─────────────────────
+                SectionLabel("알람 끄기 챌린지")
 
             ExposedDropdownMenuBox(
                 expanded = challengeMenuExpanded,
@@ -308,6 +321,7 @@ fun AlarmEditScreen(
                     steps = 6,
                 )
             }
+            }  // end if (advancedExpanded)
 
             if (isEdit) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))

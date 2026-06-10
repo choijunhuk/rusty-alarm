@@ -1,7 +1,9 @@
 package com.example.rustyalarm
 
+import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
@@ -45,6 +47,7 @@ class AlarmRingActivity : ComponentActivity() {
     private var vibrator: Vibrator? = null
     private val rampScope = MainScope()
     private var rampJob: Job? = null
+    private var savedAlarmVolume: Int = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,8 +77,11 @@ class AlarmRingActivity : ComponentActivity() {
         val challengeType = runCatching { ChallengeType.valueOf(challengeName) }
             .getOrDefault(ChallengeType.NONE)
 
-        if (soundEnabled) startAlarmSound(ringtoneUri, volumeRamp)
-        if (vibrate)      startVibration()
+        if (soundEnabled) {
+            forceMaxAlarmVolume()
+            startAlarmSound(ringtoneUri, volumeRamp)
+        }
+        if (vibrate) startVibration()
 
         val firedAt = System.currentTimeMillis()
 
@@ -196,6 +202,27 @@ class AlarmRingActivity : ComponentActivity() {
         }
     }
 
+    private fun forceMaxAlarmVolume() {
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val max = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+            savedAlarmVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
+            am.setStreamVolume(AudioManager.STREAM_ALARM, max, 0)
+        } catch (_: SecurityException) {
+            // Some OEMs require notification policy access to change alarm
+            // volume while DND is on — fail silently rather than crash.
+        }
+    }
+
+    private fun restoreAlarmVolume() {
+        if (savedAlarmVolume < 0) return
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            am.setStreamVolume(AudioManager.STREAM_ALARM, savedAlarmVolume, 0)
+        } catch (_: SecurityException) {}
+        savedAlarmVolume = -1
+    }
+
     private fun stopSounds() {
         rampJob?.cancel()
         rampJob = null
@@ -203,6 +230,7 @@ class AlarmRingActivity : ComponentActivity() {
         mediaPlayer = null
         vibrator?.cancel()
         vibrator = null
+        restoreAlarmVolume()
     }
 
     override fun onDestroy() {
