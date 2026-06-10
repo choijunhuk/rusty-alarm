@@ -70,8 +70,14 @@ fun AlarmRingScreen(
     var shakeCount  by remember { mutableIntStateOf(0) }
     var solved      by remember { mutableStateOf(challengeType == ChallengeType.NONE) }
 
-    // ── shake sensor ─────────────────────────────────
-    if (challengeType == ChallengeType.SHAKE) {
+    // ── shake sensor (3 difficulty levels) ──────────
+    val isShakeChallenge = challengeType == ChallengeType.SHAKE_EASY ||
+        challengeType == ChallengeType.SHAKE ||
+        challengeType == ChallengeType.SHAKE_HARD
+    val shakeTarget = remember(challengeType) { shakeTargetCount(challengeType) }
+    val threshold = remember(challengeType) { shakeThreshold(challengeType) }
+
+    if (isShakeChallenge) {
         val ctx = LocalContext.current
         DisposableEffect(Unit) {
             val sm = ctx.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -87,9 +93,9 @@ fun AlarmRingScreen(
                     val dx = abs(ev.values[0] - lx)
                     val dy = abs(ev.values[1] - ly)
                     val dz = abs(ev.values[2] - lz)
-                    if (dx + dy + dz > 15f) {
+                    if (dx + dy + dz > threshold) {
                         shakeCount++
-                        if (shakeCount >= SHAKE_TARGET_COUNT) { solved = true; onDismiss() }
+                        if (shakeCount >= shakeTarget) { solved = true; onDismiss() }
                     }
                     lx = ev.values[0]; ly = ev.values[1]; lz = ev.values[2]
                 }
@@ -225,17 +231,17 @@ fun AlarmRingScreen(
             }
 
             // ── shake challenge ───────────────────────
-            if (challengeType == ChallengeType.SHAKE && !solved) {
+            if (isShakeChallenge && !solved) {
                 ChallengeCard {
                     Text("휴대폰을 흔들어서 알람을 끄세요!", style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Center)
                     Text(
-                        "$shakeCount / $SHAKE_TARGET_COUNT",
+                        "$shakeCount / $shakeTarget",
                         fontSize = 48.sp, fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                     )
                     LinearProgressIndicator(
-                        progress = { shakeCount.toFloat() / SHAKE_TARGET_COUNT },
+                        progress = { shakeCount.toFloat() / shakeTarget },
                         modifier = Modifier.fillMaxWidth().height(8.dp),
                         color = MaterialTheme.colorScheme.primary,
                     )

@@ -40,3 +40,19 @@ private val TYPING_PHRASES = listOf(
 fun getTypingPhrase(): String = TYPING_PHRASES[Random.nextInt(TYPING_PHRASES.size)]
 
 const val SHAKE_TARGET_COUNT = 10
+
+/** Total shakes required per difficulty. */
+fun shakeTargetCount(type: ChallengeType): Int = when (type) {
+    ChallengeType.SHAKE_EASY -> 5
+    ChallengeType.SHAKE      -> 10
+    ChallengeType.SHAKE_HARD -> 25
+    else                     -> 10
+}
+
+/** Minimum delta magnitude on the accelerometer for a tick to count. */
+fun shakeThreshold(type: ChallengeType): Float = when (type) {
+    ChallengeType.SHAKE_EASY -> 10f
+    ChallengeType.SHAKE      -> 15f
+    ChallengeType.SHAKE_HARD -> 22f
+    else                     -> 15f
+}

@@ -39,6 +39,26 @@ class AlarmReceiver : BroadcastReceiver() {
             volumeRamp,
         )
 
+        // Belt-and-suspenders: also start the ring activity directly so the
+        // alarm screen appears even on devices where the full-screen intent
+        // is downgraded to a heads-up notification (e.g. OEM customisations,
+        // Android 14+ when the app loses USE_FULL_SCREEN_INTENT permission).
+        val ringActivity = Intent(context, com.example.rustyalarm.AlarmRingActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_NO_USER_ACTION
+            putExtra(EXTRA_ALARM_ID, alarmId)
+            putExtra(EXTRA_ALARM_TITLE, title)
+            putExtra(EXTRA_ALARM_HOUR, hour)
+            putExtra(EXTRA_ALARM_MINUTE, minute)
+            putExtra(EXTRA_VIBRATE, vibrate)
+            putExtra(EXTRA_SOUND_ENABLED, soundEnabled)
+            putExtra(EXTRA_RINGTONE_URI, ringtoneUri)
+            putExtra(EXTRA_CHALLENGE_TYPE, challengeType)
+            putExtra(EXTRA_VOLUME_RAMP_SECONDS, volumeRamp)
+        }
+        runCatching { context.startActivity(ringActivity) }
+
         if (vibrate) vibrate(context)
 
         val now = System.currentTimeMillis()

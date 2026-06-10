@@ -5,7 +5,9 @@ enum class ChallengeType(val label: String) {
     MATH_EASY("수학 — 쉬움"),
     MATH_MEDIUM("수학 — 보통"),
     MATH_HARD("수학 — 어려움"),
-    SHAKE("흔들기 10회"),
+    SHAKE_EASY("흔들기 — 쉬움 5회"),
+    SHAKE("흔들기 — 보통 10회"),
+    SHAKE_HARD("흔들기 — 어려움 25회"),
     TYPING("타이핑 챌린지"),
     TETRIS("테트리스 한 줄"),
 }
