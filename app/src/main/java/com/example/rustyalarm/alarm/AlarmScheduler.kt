@@ -25,25 +25,12 @@ class AlarmScheduler(private val context: Context) {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerAtMillis,
-                    pendingIntent,
-                )
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
             } else {
-                // Fallback: inexact alarm — user should grant SCHEDULE_EXACT_ALARM
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerAtMillis,
-                    pendingIntent,
-                )
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
             }
         } else {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerAtMillis,
-                pendingIntent,
-            )
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
         }
     }
 
@@ -69,6 +56,8 @@ class AlarmScheduler(private val context: Context) {
             putExtra(AlarmReceiver.EXTRA_ALARM_HOUR, alarm.hour)
             putExtra(AlarmReceiver.EXTRA_ALARM_MINUTE, alarm.minute)
             putExtra(AlarmReceiver.EXTRA_VIBRATE, alarm.vibrate)
+            putExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, alarm.soundEnabled)
+            putExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE, alarm.challengeType.name)
             putExtra(AlarmReceiver.EXTRA_REPEAT_DAYS, alarm.repeatDays.toIntArray())
         }
         return PendingIntent.getBroadcast(
@@ -79,6 +68,5 @@ class AlarmScheduler(private val context: Context) {
         )
     }
 
-    // Keep requestCode within Int range, stable per alarm id
     private fun Long.toRequestCode(): Int = (this % Int.MAX_VALUE).toInt()
 }

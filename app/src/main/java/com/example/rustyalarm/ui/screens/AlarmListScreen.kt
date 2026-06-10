@@ -1,22 +1,30 @@
 package com.example.rustyalarm.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.ui.components.AlarmCard
 import com.example.rustyalarm.viewmodel.AlarmListViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,51 +36,137 @@ fun AlarmListScreen(
     val vm: AlarmListViewModel = viewModel(factory = AlarmListViewModel.Factory(repository))
     val alarms by vm.alarms.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Rusty Alarm") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onAddAlarm) {
-                Icon(Icons.Default.Add, contentDescription = "알람 추가")
-            }
-        },
-    ) { padding ->
-        if (alarms.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "등록된 알람이 없습니다",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    textAlign = TextAlign.Center,
+    // Live current time for header
+    var currentTime by remember { mutableStateOf(currentTimeString()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(1_000)
+            currentTime = currentTimeString()
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFF0D0D22), Color(0xFF0A0A1A))
                 )
-            }
-        } else {
+            ),
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "Rusty Alarm",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = onAddAlarm,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "알람 추가")
+                }
+            },
+        ) { padding ->
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                contentPadding = PaddingValues(bottom = 88.dp),
             ) {
-                items(alarms, key = { it.id }) { alarm ->
-                    AlarmCard(
-                        alarm = alarm,
-                        onToggle = { enabled -> vm.toggleAlarm(alarm, enabled) },
-                        onClick = { onEditAlarm(alarm) },
-                        onDelete = { vm.deleteAlarm(alarm) },
-                    )
+                // Live clock header
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = currentTime,
+                            fontSize = 56.sp,
+                            fontWeight = FontWeight.ExtraLight,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            letterSpacing = 2.sp,
+                        )
+                        Text(
+                            text = greetingText(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                }
+
+                if (alarms.isEmpty()) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 64.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Alarm,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
+                                modifier = Modifier.size(80.dp),
+                            )
+                            Text(
+                                text = "등록된 알람이 없습니다",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                textAlign = TextAlign.Center,
+                            )
+                            Text(
+                                text = "+ 버튼을 눌러 추가하세요",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+                            )
+                        }
+                    }
+                } else {
+                    items(alarms, key = { it.id }) { alarm ->
+                        AlarmCard(
+                            alarm = alarm,
+                            onToggle = { enabled -> vm.toggleAlarm(alarm, enabled) },
+                            onClick = { onEditAlarm(alarm) },
+                            onDelete = { vm.deleteAlarm(alarm) },
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+private fun currentTimeString(): String =
+    SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+
+private fun greetingText(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return when {
+        hour < 6  -> "밤이 깊었네요 🌙"
+        hour < 12 -> "좋은 아침이에요 ☀️"
+        hour < 18 -> "좋은 오후예요 🌤"
+        else      -> "좋은 저녁이에요 🌆"
     }
 }

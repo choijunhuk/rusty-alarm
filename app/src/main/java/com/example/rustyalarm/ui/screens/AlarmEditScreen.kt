@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rustyalarm.alarm.AlarmRepository
+import com.example.rustyalarm.alarm.ChallengeType
 import com.example.rustyalarm.ui.components.DaySelector
 import com.example.rustyalarm.ui.components.TimePickerSection
 import com.example.rustyalarm.viewmodel.AlarmEditViewModel
@@ -26,15 +27,16 @@ fun AlarmEditScreen(
     onBack: () -> Unit,
 ) {
     val vm: AlarmEditViewModel = viewModel(factory = AlarmEditViewModel.Factory(repository))
-    val alarm by vm.alarm.collectAsStateWithLifecycle()
-    val saved by vm.saved.collectAsStateWithLifecycle()
+    val alarm    by vm.alarm.collectAsStateWithLifecycle()
+    val saved    by vm.saved.collectAsStateWithLifecycle()
     val isLoaded by vm.isLoaded.collectAsStateWithLifecycle()
 
     LaunchedEffect(alarmId) { vm.load(alarmId) }
-    LaunchedEffect(saved) { if (saved) onBack() }
+    LaunchedEffect(saved)   { if (saved) onBack() }
 
     val isEdit = alarmId != -1L
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var challengeMenuExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -53,10 +55,11 @@ fun AlarmEditScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.background,
                 ),
             )
         },
+        containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         if (!isLoaded) {
             Box(
@@ -72,10 +75,9 @@ fun AlarmEditScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            // key("loaded") ensures TimePickerState is initialised exactly once,
-            // after the alarm data is loaded from the DB.
+            // Time picker (TimeInput — diagram style)
             key("loaded") {
                 TimePickerSection(
                     hour = alarm.hour,
@@ -84,6 +86,8 @@ fun AlarmEditScreen(
                     onMinuteChange = vm::updateMinute,
                 )
             }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
 
             // Title
             OutlinedTextField(
@@ -95,50 +99,69 @@ fun AlarmEditScreen(
             )
 
             // Repeat days
-            Text("반복 요일", style = MaterialTheme.typography.titleMedium)
-            DaySelector(
-                selectedDays = alarm.repeatDays,
-                onDayToggle = vm::toggleRepeatDay,
-            )
-
-            // Vibrate
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("진동", style = MaterialTheme.typography.bodyLarge)
-                Switch(
-                    checked = alarm.vibrate,
-                    onCheckedChange = vm::updateVibrate,
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("반복 요일", style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                DaySelector(
+                    selectedDays = alarm.repeatDays,
+                    onDayToggle = vm::toggleRepeatDay,
                 )
             }
 
-            // Enabled (edit mode only)
-            if (isEdit) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+
+            // Vibrate row
+            ToggleRow("진동", alarm.vibrate, vm::updateVibrate)
+
+            // Sound row
+            ToggleRow("알람 소리", alarm.soundEnabled, vm::updateSoundEnabled)
+
+            // Challenge type dropdown
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("알람 끄기 챌린지", style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                ExposedDropdownMenuBox(
+                    expanded = challengeMenuExpanded,
+                    onExpandedChange = { challengeMenuExpanded = it },
                 ) {
-                    Text("활성화", style = MaterialTheme.typography.bodyLarge)
-                    Switch(
-                        checked = alarm.enabled,
-                        onCheckedChange = vm::updateEnabled,
+                    OutlinedTextField(
+                        value = alarm.challengeType.label,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("챌린지 유형") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(challengeMenuExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
                     )
+                    ExposedDropdownMenu(
+                        expanded = challengeMenuExpanded,
+                        onDismissRequest = { challengeMenuExpanded = false },
+                    ) {
+                        ChallengeType.entries.forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(type.label) },
+                                onClick = {
+                                    vm.updateChallengeType(type)
+                                    challengeMenuExpanded = false
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                            )
+                        }
+                    }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            // Enabled toggle (edit only)
+            if (isEdit) {
+                ToggleRow("활성화", alarm.enabled, vm::updateEnabled)
+            }
 
-            // Save button
+            Spacer(Modifier.height(8.dp))
+
             Button(
                 onClick = vm::save,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
             ) {
-                Text("저장")
+                Text("저장", style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -147,7 +170,7 @@ fun AlarmEditScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("알람 삭제") },
-            text = { Text("이 알람을 삭제하시겠습니까?") },
+            text = { Text("이 알람을 삭제할까요?") },
             confirmButton = {
                 TextButton(onClick = { vm.delete(); showDeleteDialog = false }) {
                     Text("삭제", color = MaterialTheme.colorScheme.error)
@@ -156,6 +179,22 @@ fun AlarmEditScreen(
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("취소") }
             },
+        )
+    }
+}
+
+@Composable
+private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(checkedTrackColor = MaterialTheme.colorScheme.primary),
         )
     }
 }

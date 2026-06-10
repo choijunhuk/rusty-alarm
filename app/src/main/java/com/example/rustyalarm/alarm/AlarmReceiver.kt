@@ -16,39 +16,39 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             ACTION_ALARM_FIRED -> handleAlarmFired(context, intent)
-            ACTION_SNOOZE       -> handleSnooze(context, intent)
-            ACTION_DISMISS      -> handleDismiss(context, intent)
+            ACTION_SNOOZE      -> handleSnooze(context, intent)
+            ACTION_DISMISS     -> handleDismiss(context, intent)
         }
     }
 
     private fun handleAlarmFired(context: Context, intent: Intent) {
-        val pendingResult = goAsync()
+        val pendingResult  = goAsync()
+        val alarmId        = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
+        val title          = intent.getStringExtra(EXTRA_ALARM_TITLE) ?: "알람"
+        val hour           = intent.getIntExtra(EXTRA_ALARM_HOUR, 0)
+        val minute         = intent.getIntExtra(EXTRA_ALARM_MINUTE, 0)
+        val vibrate        = intent.getBooleanExtra(EXTRA_VIBRATE, true)
+        val soundEnabled   = intent.getBooleanExtra(EXTRA_SOUND_ENABLED, true)
+        val challengeType  = intent.getStringExtra(EXTRA_CHALLENGE_TYPE) ?: ChallengeType.NONE.name
+        val repeatDays     = intent.getIntArrayExtra(EXTRA_REPEAT_DAYS) ?: intArrayOf()
 
-        val alarmId     = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
-        val title       = intent.getStringExtra(EXTRA_ALARM_TITLE) ?: "알람"
-        val hour        = intent.getIntExtra(EXTRA_ALARM_HOUR, 0)
-        val minute      = intent.getIntExtra(EXTRA_ALARM_MINUTE, 0)
-        val vibrate     = intent.getBooleanExtra(EXTRA_VIBRATE, true)
-        val repeatDays  = intent.getIntArrayExtra(EXTRA_REPEAT_DAYS) ?: intArrayOf()
-
-        // Show notification + launch ring activity
-        AlarmNotificationManager.showAlarmNotification(context, alarmId, title, hour, minute)
+        AlarmNotificationManager.showAlarmNotification(
+            context, alarmId, title, hour, minute, soundEnabled, challengeType,
+        )
 
         if (vibrate) vibrate(context)
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = AlarmDatabase.getDatabase(context)
+                val db        = AlarmDatabase.getDatabase(context)
                 val scheduler = AlarmScheduler(context)
 
                 if (repeatDays.isNotEmpty()) {
-                    // Reschedule next occurrence
                     val entity = db.alarmDao().getById(alarmId)
                     if (entity != null && entity.enabled) {
                         scheduler.schedule(entity.toAlarm())
                     }
                 } else {
-                    // One-time alarm: disable
                     db.alarmDao().setEnabled(alarmId, false)
                 }
             } finally {
@@ -58,30 +58,29 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 
     private fun handleSnooze(context: Context, intent: Intent) {
-        val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
-        val title   = intent.getStringExtra(EXTRA_ALARM_TITLE) ?: "알람"
-        val hour    = intent.getIntExtra(EXTRA_ALARM_HOUR, 0)
-        val minute  = intent.getIntExtra(EXTRA_ALARM_MINUTE, 0)
-        val vibrate = intent.getBooleanExtra(EXTRA_VIBRATE, true)
+        val alarmId      = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
+        val title        = intent.getStringExtra(EXTRA_ALARM_TITLE) ?: "알람"
+        val hour         = intent.getIntExtra(EXTRA_ALARM_HOUR, 0)
+        val minute       = intent.getIntExtra(EXTRA_ALARM_MINUTE, 0)
+        val vibrate      = intent.getBooleanExtra(EXTRA_VIBRATE, true)
+        val soundEnabled = intent.getBooleanExtra(EXTRA_SOUND_ENABLED, true)
 
         AlarmNotificationManager.cancelNotification(context, alarmId)
 
-        // Snooze = one-time alarm 5 minutes from now
         val snoozeMillis = System.currentTimeMillis() + 5 * 60 * 1000L
-        val snoozeAlarm = Alarm(
-            id = alarmId + SNOOZE_ID_OFFSET,
-            title = "$title (다시 알림)",
-            hour = hour,
-            minute = minute,
-            repeatDays = emptyList(),
-            enabled = true,
-            vibrate = vibrate,
+        val snoozeAlarm  = Alarm(
+            id           = alarmId + SNOOZE_ID_OFFSET,
+            title        = "$title (다시 알림)",
+            hour         = hour,
+            minute       = minute,
+            vibrate      = vibrate,
+            soundEnabled = soundEnabled,
+            challengeType = ChallengeType.NONE,
         )
 
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Directly schedule with exact time override via a custom scheduler call
                 AlarmSchedulerSnooze(context).scheduleAt(snoozeAlarm, snoozeMillis)
             } finally {
                 pendingResult.finish()
@@ -99,9 +98,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val pattern = longArrayOf(0, 500, 300, 500, 300, 500)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            manager.defaultVibrator.vibrate(
-                VibrationEffect.createWaveform(pattern, 0)
-            )
+            manager.defaultVibrator.vibrate(VibrationEffect.createWaveform(pattern, 0))
         } else {
             val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -113,17 +110,19 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_ALARM_FIRED = "com.example.rustyalarm.ALARM_FIRED"
-        const val ACTION_SNOOZE      = "com.example.rustyalarm.SNOOZE"
-        const val ACTION_DISMISS     = "com.example.rustyalarm.DISMISS"
+        const val ACTION_ALARM_FIRED   = "com.example.rustyalarm.ALARM_FIRED"
+        const val ACTION_SNOOZE        = "com.example.rustyalarm.SNOOZE"
+        const val ACTION_DISMISS       = "com.example.rustyalarm.DISMISS"
 
-        const val EXTRA_ALARM_ID     = "alarm_id"
-        const val EXTRA_ALARM_TITLE  = "alarm_title"
-        const val EXTRA_ALARM_HOUR   = "alarm_hour"
-        const val EXTRA_ALARM_MINUTE = "alarm_minute"
-        const val EXTRA_VIBRATE      = "vibrate"
-        const val EXTRA_REPEAT_DAYS  = "repeat_days"
+        const val EXTRA_ALARM_ID       = "alarm_id"
+        const val EXTRA_ALARM_TITLE    = "alarm_title"
+        const val EXTRA_ALARM_HOUR     = "alarm_hour"
+        const val EXTRA_ALARM_MINUTE   = "alarm_minute"
+        const val EXTRA_VIBRATE        = "vibrate"
+        const val EXTRA_SOUND_ENABLED  = "sound_enabled"
+        const val EXTRA_CHALLENGE_TYPE = "challenge_type"
+        const val EXTRA_REPEAT_DAYS    = "repeat_days"
 
-        const val SNOOZE_ID_OFFSET   = 100_000L
+        const val SNOOZE_ID_OFFSET     = 100_000L
     }
 }

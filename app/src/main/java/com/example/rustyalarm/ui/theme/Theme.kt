@@ -5,17 +5,30 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
+val Purple80   = Color(0xFF7C4DFF)
+val Cyan80     = Color(0xFF00E5FF)
+val Navy20     = Color(0xFF0A0A1A)
+val Navy30     = Color(0xFF16162A)
+val Navy40     = Color(0xFF21213A)
+val GrayMuted  = Color(0xFF8888AA)
+
 private val DarkColors = darkColorScheme(
-    primary          = Color(0xFFBB86FC),
-    onPrimary        = Color(0xFF000000),
-    primaryContainer = Color(0xFF3700B3),
-    secondary        = Color(0xFF03DAC6),
-    onSecondary      = Color(0xFF000000),
-    background       = Color(0xFF121212),
-    onBackground     = Color(0xFFFFFFFF),
-    surface          = Color(0xFF1E1E1E),
-    onSurface        = Color(0xFFFFFFFF),
-    error            = Color(0xFFCF6679),
+    primary            = Color(0xFF7C4DFF),
+    onPrimary          = Color.White,
+    primaryContainer   = Color(0xFF4A148C),
+    onPrimaryContainer = Color(0xFFE8D5FF),
+    secondary          = Color(0xFF00E5FF),
+    onSecondary        = Color.Black,
+    secondaryContainer = Color(0xFF00838F),
+    background         = Color(0xFF0A0A1A),
+    onBackground       = Color.White,
+    surface            = Color(0xFF16162A),
+    onSurface          = Color.White,
+    surfaceVariant     = Color(0xFF21213A),
+    onSurfaceVariant   = Color(0xFFBBBBDD),
+    error              = Color(0xFFFF5252),
+    onError            = Color.White,
+    outline            = Color(0xFF44446A),
 )
 
 @Composable

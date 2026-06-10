@@ -1,8 +1,14 @@
 package com.example.rustyalarm
 
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.media.RingtoneManager
 import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,6 +20,7 @@ import com.example.rustyalarm.alarm.AlarmNotificationManager
 import com.example.rustyalarm.alarm.AlarmReceiver
 import com.example.rustyalarm.alarm.AlarmSchedulerSnooze
 import com.example.rustyalarm.alarm.Alarm
+import com.example.rustyalarm.alarm.ChallengeType
 import com.example.rustyalarm.ui.screens.AlarmRingScreen
 import com.example.rustyalarm.ui.theme.RustyAlarmTheme
 import kotlinx.coroutines.CoroutineScope
@@ -22,10 +29,12 @@ import kotlinx.coroutines.launch
 
 class AlarmRingActivity : ComponentActivity() {
 
+    private var mediaPlayer: MediaPlayer? = null
+    private var vibrator: Vibrator? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Show over lock screen and keep screen on
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -38,11 +47,19 @@ class AlarmRingActivity : ComponentActivity() {
             )
         }
 
-        val alarmId = intent.getLongExtra(AlarmReceiver.EXTRA_ALARM_ID, -1L)
-        val title   = intent.getStringExtra(AlarmReceiver.EXTRA_ALARM_TITLE) ?: "알람"
-        val hour    = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_HOUR, 0)
-        val minute  = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_MINUTE, 0)
-        val vibrate = intent.getBooleanExtra(AlarmReceiver.EXTRA_VIBRATE, true)
+        val alarmId       = intent.getLongExtra(AlarmReceiver.EXTRA_ALARM_ID, -1L)
+        val title         = intent.getStringExtra(AlarmReceiver.EXTRA_ALARM_TITLE) ?: "알람"
+        val hour          = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_HOUR, 0)
+        val minute        = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_MINUTE, 0)
+        val vibrate       = intent.getBooleanExtra(AlarmReceiver.EXTRA_VIBRATE, true)
+        val soundEnabled  = intent.getBooleanExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, true)
+        val challengeName = intent.getStringExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE)
+            ?: ChallengeType.NONE.name
+        val challengeType = runCatching { ChallengeType.valueOf(challengeName) }
+            .getOrDefault(ChallengeType.NONE)
+
+        if (soundEnabled) startAlarmSound()
+        if (vibrate) startVibration()
 
         setContent {
             RustyAlarmTheme {
@@ -51,23 +68,28 @@ class AlarmRingActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     AlarmRingScreen(
-                        alarmId = alarmId,
-                        title = title,
-                        hour = hour,
-                        minute = minute,
+                        alarmId       = alarmId,
+                        title         = title,
+                        hour          = hour,
+                        minute        = minute,
+                        challengeType = challengeType,
                         onDismiss = {
+                            stopSounds()
                             AlarmNotificationManager.cancelNotification(this, alarmId)
                             finish()
                         },
                         onSnooze = {
+                            stopSounds()
                             AlarmNotificationManager.cancelNotification(this, alarmId)
                             val snoozeMillis = System.currentTimeMillis() + 5 * 60 * 1000L
                             val snoozeAlarm = Alarm(
-                                id = alarmId + AlarmReceiver.SNOOZE_ID_OFFSET,
-                                title = "$title (다시 알림)",
-                                hour = hour,
-                                minute = minute,
-                                vibrate = vibrate,
+                                id           = alarmId + AlarmReceiver.SNOOZE_ID_OFFSET,
+                                title        = "$title (다시 알림)",
+                                hour         = hour,
+                                minute       = minute,
+                                vibrate      = vibrate,
+                                soundEnabled = soundEnabled,
+                                challengeType = ChallengeType.NONE,
                             )
                             CoroutineScope(Dispatchers.IO).launch {
                                 AlarmSchedulerSnooze(this@AlarmRingActivity)
@@ -79,6 +101,56 @@ class AlarmRingActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun startAlarmSound() {
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            ?: return
+        try {
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(this@AlarmRingActivity, uri)
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+                isLooping = true
+                prepareAsync()
+                setOnPreparedListener { start() }
+            }
+        } catch (_: Exception) { /* no alarm sound available — fail silently */ }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun startVibration() {
+        val pattern = longArrayOf(0, 500, 300, 500, 300, 500, 300)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val mgr = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibrator = mgr.defaultVibrator
+        } else {
+            vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+        }
+        vibrator?.let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                it.vibrate(VibrationEffect.createWaveform(pattern, 0))
+            } else {
+                it.vibrate(pattern, 0)
+            }
+        }
+    }
+
+    private fun stopSounds() {
+        mediaPlayer?.runCatching { stop(); release() }
+        mediaPlayer = null
+        vibrator?.cancel()
+        vibrator = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopSounds()
     }
 
     override fun onNewIntent(intent: Intent) {

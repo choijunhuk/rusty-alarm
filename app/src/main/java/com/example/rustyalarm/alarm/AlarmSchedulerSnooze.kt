@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 
-/** Schedules a snooze alarm at an exact absolute timestamp. */
 class AlarmSchedulerSnooze(private val context: Context) {
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -19,13 +18,13 @@ class AlarmSchedulerSnooze(private val context: Context) {
             putExtra(AlarmReceiver.EXTRA_ALARM_HOUR, alarm.hour)
             putExtra(AlarmReceiver.EXTRA_ALARM_MINUTE, alarm.minute)
             putExtra(AlarmReceiver.EXTRA_VIBRATE, alarm.vibrate)
+            putExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, alarm.soundEnabled)
+            putExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE, alarm.challengeType.name)
             putExtra(AlarmReceiver.EXTRA_REPEAT_DAYS, intArrayOf())
         }
         val requestCode = (alarm.id % Int.MAX_VALUE).toInt()
         val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            requestCode,
-            intent,
+            context, requestCode, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 

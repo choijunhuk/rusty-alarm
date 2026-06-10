@@ -18,37 +18,40 @@ fun TimePickerSection(
     onMinuteChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val timePickerState = rememberTimePickerState(
+    // State lives here; initialised once when the composable first enters composition.
+    // AlarmEditScreen gates display behind `isLoaded`, so this is always correct.
+    val state = rememberTimePickerState(
         initialHour = hour,
         initialMinute = minute,
         is24Hour = true,
     )
 
-    // Sync state changes back to ViewModel
-    LaunchedEffect(timePickerState.hour, timePickerState.minute) {
-        onHourChange(timePickerState.hour)
-        onMinuteChange(timePickerState.minute)
+    // Push user changes back to ViewModel
+    LaunchedEffect(state.hour, state.minute) {
+        onHourChange(state.hour)
+        onMinuteChange(state.minute)
     }
 
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Large time display
+        // Live time preview
         Text(
-            text = "%02d:%02d".format(hour, minute),
-            fontSize = 56.sp,
+            text = "%02d:%02d".format(state.hour, state.minute),
+            fontSize = 60.sp,
             fontWeight = FontWeight.Thin,
             color = MaterialTheme.colorScheme.primary,
         )
 
-        Spacer(Modifier.height(16.dp))
-
-        TimePicker(
-            state = timePickerState,
+        // TimeInput = HH:MM text boxes (diagram style, no clock dial)
+        TimeInput(
+            state = state,
             colors = TimePickerDefaults.colors(
-                clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
-                selectorColor = MaterialTheme.colorScheme.primary,
+                timeSelectorSelectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                timeSelectorSelectedContentColor   = MaterialTheme.colorScheme.onPrimaryContainer,
+                timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
         )
     }
