@@ -26,5 +26,17 @@ fun generateMathProblem(type: ChallengeType): MathProblem = when (type) {
         val b = Random.nextInt(3, 9)
         MathProblem("$a × $b = ?", a * b)
     }
-    ChallengeType.NONE -> MathProblem("", 0)
+    else -> MathProblem("", 0)
 }
+
+private val TYPING_PHRASES = listOf(
+    "잘 일어났어요",
+    "오늘도 파이팅",
+    "기상 완료",
+    "좋은 아침",
+    "일어나자",
+)
+
+fun getTypingPhrase(): String = TYPING_PHRASES[Random.nextInt(TYPING_PHRASES.size)]
+
+const val SHAKE_TARGET_COUNT = 10

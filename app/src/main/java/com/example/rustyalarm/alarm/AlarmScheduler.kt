@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.example.rustyalarm.rust.RustAlarmCore
+import java.util.Calendar
 
 class AlarmScheduler(private val context: Context) {
 
@@ -14,12 +15,23 @@ class AlarmScheduler(private val context: Context) {
     fun schedule(alarm: Alarm) {
         if (!alarm.enabled) return
 
-        val triggerAtMillis = RustAlarmCore.calculateNextAlarmTimestamp(
-            currentTimestampMillis = System.currentTimeMillis(),
-            hour = alarm.hour,
-            minute = alarm.minute,
-            repeatDays = alarm.repeatDays.toIntArray(),
-        )
+        val triggerAtMillis = if (alarm.specificDate != null) {
+            // Specific date: set hour/minute on that calendar day
+            Calendar.getInstance().apply {
+                timeInMillis = alarm.specificDate
+                set(Calendar.HOUR_OF_DAY, alarm.hour)
+                set(Calendar.MINUTE, alarm.minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+        } else {
+            RustAlarmCore.calculateNextAlarmTimestamp(
+                currentTimestampMillis = System.currentTimeMillis(),
+                hour = alarm.hour,
+                minute = alarm.minute,
+                repeatDays = alarm.repeatDays.toIntArray(),
+            )
+        }
 
         val pendingIntent = buildPendingIntent(alarm)
 
@@ -38,14 +50,12 @@ class AlarmScheduler(private val context: Context) {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = AlarmReceiver.ACTION_ALARM_FIRED
         }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            alarmId.toRequestCode(),
-            intent,
+        val pi = PendingIntent.getBroadcast(
+            context, alarmId.toRequestCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        alarmManager.cancel(pendingIntent)
-        pendingIntent.cancel()
+        alarmManager.cancel(pi)
+        pi.cancel()
     }
 
     private fun buildPendingIntent(alarm: Alarm): PendingIntent {
@@ -57,13 +67,12 @@ class AlarmScheduler(private val context: Context) {
             putExtra(AlarmReceiver.EXTRA_ALARM_MINUTE, alarm.minute)
             putExtra(AlarmReceiver.EXTRA_VIBRATE, alarm.vibrate)
             putExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, alarm.soundEnabled)
+            putExtra(AlarmReceiver.EXTRA_RINGTONE_URI, alarm.ringtoneUri)
             putExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE, alarm.challengeType.name)
             putExtra(AlarmReceiver.EXTRA_REPEAT_DAYS, alarm.repeatDays.toIntArray())
         }
         return PendingIntent.getBroadcast(
-            context,
-            alarm.id.toRequestCode(),
-            intent,
+            context, alarm.id.toRequestCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }

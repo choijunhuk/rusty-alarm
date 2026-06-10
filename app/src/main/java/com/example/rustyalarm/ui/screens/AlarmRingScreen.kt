@@ -1,5 +1,10 @@
 package com.example.rustyalarm.ui.screens
 
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,16 +20,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.rustyalarm.alarm.ChallengeType
-import com.example.rustyalarm.alarm.MathProblem
-import com.example.rustyalarm.alarm.generateMathProblem
+import com.example.rustyalarm.alarm.*
 import com.example.rustyalarm.rust.RustAlarmCore
+import kotlin.math.abs
 
 @Composable
 fun AlarmRingScreen(
@@ -38,71 +43,94 @@ fun AlarmRingScreen(
 ) {
     val timeText = RustAlarmCore.formatTime(hour, minute)
 
-    // Pulse animation for time display
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.04f,
+    val pulse = rememberInfiniteTransition(label = "pulse")
+    val scale by pulse.animateFloat(
+        initialValue = 1f, targetValue = 1.04f,
         animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
+            tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse,
         ),
-        label = "pulse_scale",
+        label = "scale",
     )
 
-    // Math challenge state
-    val mathProblem: MathProblem? = remember(challengeType) {
-        if (challengeType != ChallengeType.NONE) generateMathProblem(challengeType) else null
+    // ── challenge state ───────────────────────────────
+    val mathProblem = remember(challengeType) {
+        if (challengeType in listOf(ChallengeType.MATH_EASY, ChallengeType.MATH_MEDIUM, ChallengeType.MATH_HARD))
+            generateMathProblem(challengeType)
+        else null
     }
-    var userAnswer by remember { mutableStateOf("") }
-    var answerError by remember { mutableStateOf(false) }
-    var solved by remember { mutableStateOf(challengeType == ChallengeType.NONE) }
+    val typingPhrase = remember(challengeType) {
+        if (challengeType == ChallengeType.TYPING) getTypingPhrase() else null
+    }
 
-    fun checkAnswer() {
-        val input = userAnswer.trim().toIntOrNull()
-        if (input != null && mathProblem != null && input == mathProblem.answer) {
-            solved = true
-            onDismiss()
-        } else {
-            answerError = true
-            userAnswer = ""
+    var mathAnswer  by remember { mutableStateOf("") }
+    var mathError   by remember { mutableStateOf(false) }
+    var typedText   by remember { mutableStateOf("") }
+    var shakeCount  by remember { mutableIntStateOf(0) }
+    var solved      by remember { mutableStateOf(challengeType == ChallengeType.NONE) }
+
+    // ── shake sensor ─────────────────────────────────
+    if (challengeType == ChallengeType.SHAKE) {
+        val ctx = LocalContext.current
+        DisposableEffect(Unit) {
+            val sm = ctx.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+            val sensor = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            var lastUpdate = 0L
+            var lx = 0f; var ly = 0f; var lz = 0f
+
+            val listener = object : SensorEventListener {
+                override fun onSensorChanged(ev: SensorEvent) {
+                    val now = System.currentTimeMillis()
+                    if (now - lastUpdate < 100) return
+                    lastUpdate = now
+                    val dx = abs(ev.values[0] - lx)
+                    val dy = abs(ev.values[1] - ly)
+                    val dz = abs(ev.values[2] - lz)
+                    if (dx + dy + dz > 15f) {
+                        shakeCount++
+                        if (shakeCount >= SHAKE_TARGET_COUNT) { solved = true; onDismiss() }
+                    }
+                    lx = ev.values[0]; ly = ev.values[1]; lz = ev.values[2]
+                }
+                override fun onAccuracyChanged(s: Sensor, a: Int) {}
+            }
+            sm.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_UI)
+            onDispose { sm.unregisterListener(listener) }
         }
     }
 
+    fun checkMath() {
+        val input = mathAnswer.trim().toIntOrNull()
+        if (input != null && mathProblem != null && input == mathProblem.answer) {
+            solved = true; onDismiss()
+        } else { mathError = true; mathAnswer = "" }
+    }
+
+    // ── UI ───────────────────────────────────────────
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF0A0A1A), Color(0xFF1A0A2E), Color(0xFF0A0A1A))
-                )
-            ),
+            .background(Brush.verticalGradient(
+                listOf(Color(0xFF0A0A1A), Color(0xFF1A0A2E), Color(0xFF0A0A1A))
+            )),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
             modifier = Modifier.padding(32.dp),
         ) {
-
-            // Alarm icon
             Icon(
-                Icons.Default.AlarmOff,
-                contentDescription = null,
+                Icons.Default.AlarmOff, null,
                 tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                 modifier = Modifier.size(48.dp),
             )
 
-            // Time — pulsing
             Text(
-                text = timeText,
-                fontSize = 80.sp,
-                fontWeight = FontWeight.Thin,
+                text = timeText, fontSize = 80.sp, fontWeight = FontWeight.Thin,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.scale(scale),
             )
 
-            // Title
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
@@ -110,91 +138,112 @@ fun AlarmRingScreen(
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(Modifier.height(8.dp))
-
-            // Math challenge card
+            // ── math challenge ────────────────────────
             if (mathProblem != null && !solved) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                    shape = RoundedCornerShape(20.dp),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Text(
-                            text = "알람을 끄려면 풀어야 해요!",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.secondary,
-                        )
-                        Text(
-                            text = mathProblem.expression,
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        OutlinedTextField(
-                            value = userAnswer,
-                            onValueChange = { userAnswer = it; answerError = false },
-                            label = { Text("정답") },
-                            isError = answerError,
-                            supportingText = if (answerError) {{ Text("틀렸어요! 다시 시도해보세요.") }} else null,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Done,
-                            ),
-                            keyboardActions = KeyboardActions(onDone = { checkAnswer() }),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Button(
-                            onClick = ::checkAnswer,
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                        ) {
-                            Text("확인", fontWeight = FontWeight.Bold)
-                        }
+                ChallengeCard {
+                    Text("알람을 끄려면 풀어야 해요!", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary)
+                    Text(mathProblem.expression, fontSize = 36.sp, fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    OutlinedTextField(
+                        value = mathAnswer,
+                        onValueChange = { mathAnswer = it; mathError = false },
+                        label = { Text("정답") },
+                        isError = mathError,
+                        supportingText = if (mathError) {{ Text("틀렸어요! 다시 시도해보세요.") }} else null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { checkMath() }),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Button(onClick = ::checkMath, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                        Text("확인", fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            // Buttons row
+            // ── typing challenge ──────────────────────
+            if (typingPhrase != null && !solved) {
+                ChallengeCard {
+                    Text("아래 문장을 입력하면 꺼져요!", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary)
+                    Text(
+                        "\"$typingPhrase\"", fontSize = 24.sp, fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center,
+                    )
+                    OutlinedTextField(
+                        value = typedText,
+                        onValueChange = { txt ->
+                            typedText = txt
+                            if (txt == typingPhrase) { solved = true; onDismiss() }
+                        },
+                        label = { Text("입력하세요") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
+            // ── shake challenge ───────────────────────
+            if (challengeType == ChallengeType.SHAKE && !solved) {
+                ChallengeCard {
+                    Text("휴대폰을 흔들어서 알람을 끄세요!", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Center)
+                    Text(
+                        "$shakeCount / $SHAKE_TARGET_COUNT",
+                        fontSize = 48.sp, fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    LinearProgressIndicator(
+                        progress = { shakeCount.toFloat() / SHAKE_TARGET_COUNT },
+                        modifier = Modifier.fillMaxWidth().height(8.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Snooze — always available
                 OutlinedButton(
-                    onClick = onSnooze,
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.secondary,
-                    ),
-                ) {
-                    Text("5분 뒤")
-                }
+                    onClick = onSnooze, modifier = Modifier.weight(1f).height(56.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
+                ) { Text("5분 뒤") }
 
-                // Dismiss — only if no challenge or challenge solved
                 Button(
                     onClick = { if (solved) onDismiss() },
                     modifier = Modifier.weight(1f).height(56.dp),
                     enabled = solved,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (solved)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.surfaceVariant,
+                        containerColor = if (solved) MaterialTheme.colorScheme.primary
+                                         else MaterialTheme.colorScheme.surfaceVariant,
                     ),
                 ) {
                     Text(
-                        text = if (solved) "끄기" else "🔒 풀어야 꺼요",
+                        if (solved) "끄기" else "🔒 먼저 챌린지를",
                         fontWeight = FontWeight.Bold,
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ChallengeCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            content = content,
+        )
     }
 }

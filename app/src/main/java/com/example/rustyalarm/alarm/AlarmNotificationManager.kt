@@ -16,14 +16,11 @@ object AlarmNotificationManager {
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID,
-                "알람",
-                NotificationManager.IMPORTANCE_HIGH,
+                CHANNEL_ID, "알람", NotificationManager.IMPORTANCE_HIGH,
             ).apply {
-                description = "알람 알림 채널"
                 enableVibration(true)
                 setBypassDnd(true)
-                setSound(null, null)   // sound handled by AlarmRingActivity MediaPlayer
+                setSound(null, null)
             }
             nm(context).createNotificationChannel(channel)
         }
@@ -36,6 +33,7 @@ object AlarmNotificationManager {
         hour: Int,
         minute: Int,
         soundEnabled: Boolean = true,
+        ringtoneUri: String? = null,
         challengeType: String = ChallengeType.NONE.name,
     ) {
         val ringIntent = Intent(context, AlarmRingActivity::class.java).apply {
@@ -45,28 +43,29 @@ object AlarmNotificationManager {
             putExtra(AlarmReceiver.EXTRA_ALARM_HOUR, hour)
             putExtra(AlarmReceiver.EXTRA_ALARM_MINUTE, minute)
             putExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, soundEnabled)
+            putExtra(AlarmReceiver.EXTRA_RINGTONE_URI, ringtoneUri)
             putExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE, challengeType)
         }
         val contentPi = PendingIntent.getActivity(
             context, alarmId.toInt(), ringIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val dismissPi = buildBroadcastPi(context, AlarmReceiver.ACTION_DISMISS, alarmId, (alarmId + 1).toInt()) {
+        val dismissPi = broadcastPi(context, AlarmReceiver.ACTION_DISMISS, (alarmId + 1).toInt()) {
             putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarmId)
         }
-        val snoozePi = buildBroadcastPi(context, AlarmReceiver.ACTION_SNOOZE, alarmId, (alarmId + 2).toInt()) {
+        val snoozePi = broadcastPi(context, AlarmReceiver.ACTION_SNOOZE, (alarmId + 2).toInt()) {
             putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarmId)
             putExtra(AlarmReceiver.EXTRA_ALARM_TITLE, title)
             putExtra(AlarmReceiver.EXTRA_ALARM_HOUR, hour)
             putExtra(AlarmReceiver.EXTRA_ALARM_MINUTE, minute)
             putExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, soundEnabled)
+            putExtra(AlarmReceiver.EXTRA_RINGTONE_URI, ringtoneUri)
         }
 
-        val timeText = "%02d:%02d".format(hour, minute)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(title)
-            .setContentText(timeText)
+            .setContentText("%02d:%02d".format(hour, minute))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setFullScreenIntent(contentPi, true)
@@ -84,22 +83,13 @@ object AlarmNotificationManager {
         nm(context).cancel(alarmId.toInt())
     }
 
-    private fun buildBroadcastPi(
-        context: Context,
-        action: String,
-        alarmId: Long,
-        requestCode: Int,
-        extras: Intent.() -> Unit,
-    ): PendingIntent {
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
-            this.action = action
-            extras()
-        }
-        return PendingIntent.getBroadcast(
-            context, requestCode, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-    }
+    private fun broadcastPi(
+        context: Context, action: String, requestCode: Int, extras: Intent.() -> Unit,
+    ): PendingIntent = PendingIntent.getBroadcast(
+        context, requestCode,
+        Intent(context, AlarmReceiver::class.java).apply { this.action = action; extras() },
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     private fun nm(context: Context) =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

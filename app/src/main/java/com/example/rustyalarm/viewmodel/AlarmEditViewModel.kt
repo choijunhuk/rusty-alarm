@@ -30,14 +30,15 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
         }
     }
 
-    fun update(alarm: Alarm)            { _alarm.value = alarm }
-    fun updateHour(hour: Int)           { _alarm.value = _alarm.value.copy(hour = hour) }
-    fun updateMinute(minute: Int)       { _alarm.value = _alarm.value.copy(minute = minute) }
-    fun updateTitle(title: String)      { _alarm.value = _alarm.value.copy(title = title) }
-    fun updateVibrate(v: Boolean)       { _alarm.value = _alarm.value.copy(vibrate = v) }
-    fun updateSoundEnabled(s: Boolean)  { _alarm.value = _alarm.value.copy(soundEnabled = s) }
-    fun updateEnabled(e: Boolean)       { _alarm.value = _alarm.value.copy(enabled = e) }
-    fun updateChallengeType(c: ChallengeType) { _alarm.value = _alarm.value.copy(challengeType = c) }
+    fun updateHour(hour: Int)                   { _alarm.value = _alarm.value.copy(hour = hour) }
+    fun updateMinute(minute: Int)               { _alarm.value = _alarm.value.copy(minute = minute) }
+    fun updateTitle(title: String)              { _alarm.value = _alarm.value.copy(title = title) }
+    fun updateVibrate(v: Boolean)               { _alarm.value = _alarm.value.copy(vibrate = v) }
+    fun updateSoundEnabled(s: Boolean)          { _alarm.value = _alarm.value.copy(soundEnabled = s) }
+    fun updateEnabled(e: Boolean)               { _alarm.value = _alarm.value.copy(enabled = e) }
+    fun updateChallengeType(c: ChallengeType)   { _alarm.value = _alarm.value.copy(challengeType = c) }
+    fun updateSpecificDate(date: Long?)         { _alarm.value = _alarm.value.copy(specificDate = date) }
+    fun updateRingtoneUri(uri: String?)         { _alarm.value = _alarm.value.copy(ringtoneUri = uri) }
 
     fun toggleRepeatDay(day: Int) {
         val days = _alarm.value.repeatDays.toMutableList()
@@ -46,10 +47,7 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
     }
 
     fun save() {
-        viewModelScope.launch {
-            repository.save(_alarm.value)
-            _saved.value = true
-        }
+        viewModelScope.launch { repository.save(_alarm.value); _saved.value = true }
     }
 
     fun delete() {

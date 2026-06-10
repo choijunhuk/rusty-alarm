@@ -31,11 +31,15 @@ fun AlarmCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val enabled     = alarm.enabled
+    val enabled      = alarm.enabled
     val contentAlpha = if (enabled) 1f else 0.38f
     val timeColor    = if (enabled) MaterialTheme.colorScheme.primary else GrayMuted
     val accentColor  = if (enabled) MaterialTheme.colorScheme.primary else GrayMuted
-    val repeatLabel  = RustAlarmCore.getRepeatDaysLabel(alarm.repeatDays.toIntArray())
+    val scheduleLabel = remember(alarm.specificDate, alarm.repeatDays) {
+        alarm.specificDate?.let {
+            java.text.SimpleDateFormat("M월 d일 (E)", java.util.Locale.KOREAN).format(java.util.Date(it))
+        } ?: RustAlarmCore.getRepeatDaysLabel(alarm.repeatDays.toIntArray())
+    }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
@@ -102,9 +106,9 @@ fun AlarmCard(
                         }
                     }
 
-                    // Repeat label
+                    // Schedule label (date or repeat days)
                     Text(
-                        text = repeatLabel,
+                        text = scheduleLabel,
                         style = MaterialTheme.typography.labelSmall,
                         color = accentColor.copy(alpha = contentAlpha * 0.8f),
                     )

@@ -19,19 +19,19 @@ class AlarmSchedulerSnooze(private val context: Context) {
             putExtra(AlarmReceiver.EXTRA_ALARM_MINUTE, alarm.minute)
             putExtra(AlarmReceiver.EXTRA_VIBRATE, alarm.vibrate)
             putExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, alarm.soundEnabled)
+            putExtra(AlarmReceiver.EXTRA_RINGTONE_URI, alarm.ringtoneUri)
             putExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE, alarm.challengeType.name)
             putExtra(AlarmReceiver.EXTRA_REPEAT_DAYS, intArrayOf())
         }
         val requestCode = (alarm.id % Int.MAX_VALUE).toInt()
-        val pendingIntent = PendingIntent.getBroadcast(
+        val pi = PendingIntent.getBroadcast(
             context, requestCode, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
         } else {
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
         }
     }
 }

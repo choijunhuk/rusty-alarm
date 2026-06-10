@@ -4,6 +4,7 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
@@ -53,13 +54,14 @@ class AlarmRingActivity : ComponentActivity() {
         val minute        = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_MINUTE, 0)
         val vibrate       = intent.getBooleanExtra(AlarmReceiver.EXTRA_VIBRATE, true)
         val soundEnabled  = intent.getBooleanExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, true)
+        val ringtoneUri   = intent.getStringExtra(AlarmReceiver.EXTRA_RINGTONE_URI)
         val challengeName = intent.getStringExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE)
             ?: ChallengeType.NONE.name
         val challengeType = runCatching { ChallengeType.valueOf(challengeName) }
             .getOrDefault(ChallengeType.NONE)
 
-        if (soundEnabled) startAlarmSound()
-        if (vibrate) startVibration()
+        if (soundEnabled) startAlarmSound(ringtoneUri)
+        if (vibrate)      startVibration()
 
         setContent {
             RustyAlarmTheme {
@@ -82,18 +84,18 @@ class AlarmRingActivity : ComponentActivity() {
                             stopSounds()
                             AlarmNotificationManager.cancelNotification(this, alarmId)
                             val snoozeMillis = System.currentTimeMillis() + 5 * 60 * 1000L
-                            val snoozeAlarm = Alarm(
+                            val snooze = Alarm(
                                 id           = alarmId + AlarmReceiver.SNOOZE_ID_OFFSET,
                                 title        = "$title (다시 알림)",
                                 hour         = hour,
                                 minute       = minute,
                                 vibrate      = vibrate,
                                 soundEnabled = soundEnabled,
+                                ringtoneUri  = ringtoneUri,
                                 challengeType = ChallengeType.NONE,
                             )
                             CoroutineScope(Dispatchers.IO).launch {
-                                AlarmSchedulerSnooze(this@AlarmRingActivity)
-                                    .scheduleAt(snoozeAlarm, snoozeMillis)
+                                AlarmSchedulerSnooze(this@AlarmRingActivity).scheduleAt(snooze, snoozeMillis)
                             }
                             finish()
                         },
@@ -103,8 +105,9 @@ class AlarmRingActivity : ComponentActivity() {
         }
     }
 
-    private fun startAlarmSound() {
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+    private fun startAlarmSound(ringtoneUriStr: String?) {
+        val uri = ringtoneUriStr?.let { runCatching { Uri.parse(it) }.getOrNull() }
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
             ?: return
         try {
@@ -120,24 +123,21 @@ class AlarmRingActivity : ComponentActivity() {
                 prepareAsync()
                 setOnPreparedListener { start() }
             }
-        } catch (_: Exception) { /* no alarm sound available — fail silently */ }
+        } catch (_: Exception) {}
     }
 
     @Suppress("DEPRECATION")
     private fun startVibration() {
-        val pattern = longArrayOf(0, 500, 300, 500, 300, 500, 300)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val mgr = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibrator = mgr.defaultVibrator
-        } else {
-            vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
-        }
+        val pattern = longArrayOf(0, 500, 300, 500, 300, 500)
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+            (getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
+        else
+            getSystemService(VIBRATOR_SERVICE) as Vibrator
         vibrator?.let {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 it.vibrate(VibrationEffect.createWaveform(pattern, 0))
-            } else {
+            else
                 it.vibrate(pattern, 0)
-            }
         }
     }
 
@@ -148,13 +148,7 @@ class AlarmRingActivity : ComponentActivity() {
         vibrator = null
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        stopSounds()
-    }
+    override fun onDestroy() { super.onDestroy(); stopSounds() }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-    }
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent) }
 }
