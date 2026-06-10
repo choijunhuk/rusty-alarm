@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.ChallengeType
+import com.example.rustyalarm.rust.RustAlarmCore
+import java.util.Calendar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +20,9 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
 
     private val _saved    = MutableStateFlow(false)
     val saved: StateFlow<Boolean> = _saved.asStateFlow()
+
+    private val _saveToast = MutableStateFlow<String?>(null)
+    val saveToast: StateFlow<String?> = _saveToast.asStateFlow()
 
     private val _isLoaded = MutableStateFlow(false)
     val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
@@ -51,7 +56,63 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
     }
 
     fun save() {
-        viewModelScope.launch { repository.save(_alarm.value); _saved.value = true }
+        viewModelScope.launch {
+            val a = _alarm.value
+            repository.save(a)
+            _saveToast.value = friendlyOffsetLabel(computeTriggerMillis(a))
+            _saved.value = true
+        }
+    }
+
+    private fun computeTriggerMillis(a: Alarm): Long {
+        val specific = a.specificDate
+        return if (specific != null) {
+            Calendar.getInstance().apply {
+                timeInMillis = specific
+                set(Calendar.HOUR_OF_DAY, a.hour)
+                set(Calendar.MINUTE, a.minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+        } else {
+            RustAlarmCore.calculateNextAlarmTimestamp(
+                System.currentTimeMillis(), a.hour, a.minute, a.repeatDays.toIntArray(),
+            )
+        }
+    }
+
+    private fun friendlyOffsetLabel(triggerMillis: Long): String {
+        val diff = triggerMillis - System.currentTimeMillis()
+        if (diff <= 0L) return "곧 울려요"
+        val mins = (diff / 60_000L).toInt()
+        return when {
+            mins < 60 -> "$mins 분 후 울려요"
+            mins < 1440 -> "${mins / 60}시간 ${mins % 60}분 후 울려요"
+            else -> "${mins / 1440}일 ${mins % 1440 / 60}시간 후 울려요"
+        }
+    }
+
+    /**
+     * Schedules a one-shot alarm [offsetMinutes] from now. Title gets a friendly
+     * "N분 후" suffix unless the user typed something else.
+     */
+    fun saveQuickFromNow(offsetMinutes: Int, label: String) {
+        val now = java.util.Calendar.getInstance()
+        now.add(java.util.Calendar.MINUTE, offsetMinutes)
+        val alarm = _alarm.value.copy(
+            title = if (_alarm.value.title.isBlank() || _alarm.value.title == "알람") label
+                    else _alarm.value.title,
+            hour = now.get(java.util.Calendar.HOUR_OF_DAY),
+            minute = now.get(java.util.Calendar.MINUTE),
+            specificDate = now.timeInMillis,
+            repeatDays = emptyList(),
+            enabled = true,
+        )
+        viewModelScope.launch {
+            repository.save(alarm)
+            _saveToast.value = friendlyOffsetLabel(now.timeInMillis)
+            _saved.value = true
+        }
     }
 
     fun delete() {

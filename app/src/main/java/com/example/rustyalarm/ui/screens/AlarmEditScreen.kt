@@ -7,6 +7,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,7 +31,7 @@ import com.example.rustyalarm.viewmodel.AlarmEditViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AlarmEditScreen(
     alarmId: Long,
@@ -42,7 +44,15 @@ fun AlarmEditScreen(
     val isLoaded by vm.isLoaded.collectAsStateWithLifecycle()
 
     LaunchedEffect(alarmId) { vm.load(alarmId) }
-    LaunchedEffect(saved)   { if (saved) onBack() }
+    val saveToast by vm.saveToast.collectAsStateWithLifecycle()
+    LaunchedEffect(saved) {
+        if (saved) {
+            saveToast?.let {
+                android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            }
+            onBack()
+        }
+    }
 
     val isEdit = alarmId != -1L
     var showDeleteDialog       by remember { mutableStateOf(false) }
@@ -121,6 +131,31 @@ fun AlarmEditScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            if (!isEdit) {
+                // Quick presets — only for new alarms
+                SectionLabel("빠른 설정 (지금부터)")
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    listOf(
+                        5 to "5분 후",
+                        15 to "15분 후",
+                        30 to "30분 후",
+                        60 to "1시간 후",
+                        180 to "3시간 후",
+                        480 to "8시간 후",
+                    ).forEach { (min, label) ->
+                        AssistChip(
+                            onClick = { vm.saveQuickFromNow(min, label) },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+            }
+
             // Time picker
             key("loaded") {
                 TimePickerSection(

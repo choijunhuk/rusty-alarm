@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.example.rustyalarm.alarm.*
 import com.example.rustyalarm.fortune.Fortune
 import com.example.rustyalarm.rust.RustAlarmCore
+import com.example.rustyalarm.ui.components.TetrisChallenge
 import kotlin.math.abs
 
 @Composable
@@ -210,6 +211,16 @@ fun AlarmRingScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                }
+            }
+
+            // ── tetris challenge ──────────────────────
+            if (challengeType == ChallengeType.TETRIS && !solved) {
+                ChallengeCard {
+                    TetrisChallenge(onLineCleared = {
+                        solved = true
+                        onDismiss()
+                    })
                 }
             }
 

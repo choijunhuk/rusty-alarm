@@ -7,6 +7,7 @@ enum class ChallengeType(val label: String) {
     MATH_HARD("수학 — 어려움"),
     SHAKE("흔들기 10회"),
     TYPING("타이핑 챌린지"),
+    TETRIS("테트리스 한 줄"),
 }
 
 data class Alarm(
