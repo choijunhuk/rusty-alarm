@@ -72,10 +72,18 @@ class AlarmRingActivity : ComponentActivity() {
         val soundEnabled  = intent.getBooleanExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, true)
         val ringtoneUri   = intent.getStringExtra(AlarmReceiver.EXTRA_RINGTONE_URI)
         val volumeRamp    = intent.getIntExtra(AlarmReceiver.EXTRA_VOLUME_RAMP_SECONDS, 0)
+        val maxSnoozes    = intent.getIntExtra(AlarmReceiver.EXTRA_MAX_SNOOZES, 0)
+        val message       = intent.getStringExtra(AlarmReceiver.EXTRA_MESSAGE) ?: ""
         val challengeName = intent.getStringExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE)
             ?: ChallengeType.NONE.name
         val challengeType = runCatching { ChallengeType.valueOf(challengeName) }
             .getOrDefault(ChallengeType.NONE)
+
+        val snoozesRemaining = if (maxSnoozes <= 0) Int.MAX_VALUE else {
+            val used = getSharedPreferences("rusty_alarm_stats", MODE_PRIVATE)
+                .getInt("snooze_count_$alarmId", 0)
+            (maxSnoozes - used).coerceAtLeast(0)
+        }
 
         if (soundEnabled) {
             forceMaxAlarmVolume()
@@ -97,9 +105,14 @@ class AlarmRingActivity : ComponentActivity() {
                         hour          = hour,
                         minute        = minute,
                         challengeType = challengeType,
+                        message       = message,
+                        snoozesRemaining = snoozesRemaining,
                         onDismiss = {
                             stopSounds()
                             AlarmNotificationManager.cancelNotification(this, alarmId)
+                            // Reset snooze counter for next time
+                            getSharedPreferences("rusty_alarm_stats", MODE_PRIVATE)
+                                .edit().remove("snooze_count_$alarmId").apply()
                             val responseSec = (System.currentTimeMillis() - firedAt) / 1000L
                             CoroutineScope(Dispatchers.IO).launch {
                                 val db = AlarmDatabase.getDatabase(this@AlarmRingActivity)
@@ -117,7 +130,13 @@ class AlarmRingActivity : ComponentActivity() {
                             }
                             finish()
                         },
-                        onSnooze = {
+                        onSnooze = snooze@{
+                            // Honour snooze cap (button is also disabled when remaining == 0)
+                            if (snoozesRemaining <= 0) return@snooze
+                            val prefs = getSharedPreferences("rusty_alarm_stats", MODE_PRIVATE)
+                            val used = prefs.getInt("snooze_count_$alarmId", 0)
+                            prefs.edit().putInt("snooze_count_$alarmId", used + 1).apply()
+
                             stopSounds()
                             AlarmNotificationManager.cancelNotification(this, alarmId)
                             val snoozeMillis = System.currentTimeMillis() + 5 * 60 * 1000L

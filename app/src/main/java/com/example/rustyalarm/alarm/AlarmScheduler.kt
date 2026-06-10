@@ -104,6 +104,8 @@ class AlarmScheduler(private val context: Context) {
             putExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE, alarm.challengeType.name)
             putExtra(AlarmReceiver.EXTRA_REPEAT_DAYS, alarm.repeatDays.toIntArray())
             putExtra(AlarmReceiver.EXTRA_VOLUME_RAMP_SECONDS, alarm.volumeRampSeconds)
+            putExtra(AlarmReceiver.EXTRA_MAX_SNOOZES, alarm.maxSnoozes)
+            putExtra(AlarmReceiver.EXTRA_MESSAGE, alarm.message)
         }
 
     private fun buildSmartStartIntent(alarm: Alarm, deadlineMillis: Long): PendingIntent {

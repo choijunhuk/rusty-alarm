@@ -33,6 +33,8 @@ class AlarmReceiver : BroadcastReceiver() {
         val challengeType   = intent.getStringExtra(EXTRA_CHALLENGE_TYPE) ?: ChallengeType.NONE.name
         val repeatDays      = intent.getIntArrayExtra(EXTRA_REPEAT_DAYS) ?: intArrayOf()
         val volumeRamp      = intent.getIntExtra(EXTRA_VOLUME_RAMP_SECONDS, 0)
+        val maxSnoozes      = intent.getIntExtra(EXTRA_MAX_SNOOZES, 0)
+        val message         = intent.getStringExtra(EXTRA_MESSAGE) ?: ""
 
         AlarmNotificationManager.showAlarmNotification(
             context, alarmId, title, hour, minute, soundEnabled, ringtoneUri, challengeType,
@@ -56,6 +58,8 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(EXTRA_RINGTONE_URI, ringtoneUri)
             putExtra(EXTRA_CHALLENGE_TYPE, challengeType)
             putExtra(EXTRA_VOLUME_RAMP_SECONDS, volumeRamp)
+            putExtra(EXTRA_MAX_SNOOZES, maxSnoozes)
+            putExtra(EXTRA_MESSAGE, message)
         }
         runCatching { context.startActivity(ringActivity) }
 
@@ -99,8 +103,19 @@ class AlarmReceiver : BroadcastReceiver() {
         val soundEnabled = intent.getBooleanExtra(EXTRA_SOUND_ENABLED, true)
         val ringtoneUri  = intent.getStringExtra(EXTRA_RINGTONE_URI)
         val challengeType = intent.getStringExtra(EXTRA_CHALLENGE_TYPE) ?: ChallengeType.NONE.name
+        val maxSnoozes   = intent.getIntExtra(EXTRA_MAX_SNOOZES, 0)
 
         AlarmNotificationManager.cancelNotification(context, alarmId)
+
+        // Honour snooze cap (max == 0 means unlimited)
+        val prefs = context.getSharedPreferences("rusty_alarm_stats", Context.MODE_PRIVATE)
+        val key = "snooze_count_$alarmId"
+        val used = prefs.getInt(key, 0)
+        if (maxSnoozes > 0 && used >= maxSnoozes) {
+            // Cap reached — treat as dismiss
+            return
+        }
+        prefs.edit().putInt(key, used + 1).apply()
 
         val snoozeMillis = System.currentTimeMillis() + 5 * 60 * 1000L
         val snoozeAlarm  = Alarm(
@@ -134,6 +149,9 @@ class AlarmReceiver : BroadcastReceiver() {
     private fun handleDismiss(context: Context, intent: Intent) {
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
         AlarmNotificationManager.cancelNotification(context, alarmId)
+        // Reset snooze counter once the user actually dismisses
+        context.getSharedPreferences("rusty_alarm_stats", Context.MODE_PRIVATE)
+            .edit().remove("snooze_count_$alarmId").apply()
 
         val firedAt = consumeFiredAt(context, alarmId)
         val responseSec = firedAt?.let { (System.currentTimeMillis() - it) / 1000L }
@@ -197,6 +215,8 @@ class AlarmReceiver : BroadcastReceiver() {
         const val EXTRA_CHALLENGE_TYPE = "challenge_type"
         const val EXTRA_REPEAT_DAYS    = "repeat_days"
         const val EXTRA_VOLUME_RAMP_SECONDS = "volume_ramp_seconds"
+        const val EXTRA_MAX_SNOOZES    = "max_snoozes"
+        const val EXTRA_MESSAGE        = "message"
 
         const val SNOOZE_ID_OFFSET     = 100_000L
         private const val PREFS        = "rusty_alarm_stats"

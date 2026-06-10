@@ -48,6 +48,8 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
     fun updateSmartWindow(min: Int)             { _alarm.value = _alarm.value.copy(smartWindowMinutes = min) }
     fun updateVolumeRamp(sec: Int)              { _alarm.value = _alarm.value.copy(volumeRampSeconds = sec) }
     fun updateGroupTag(tag: String?)            { _alarm.value = _alarm.value.copy(groupTag = tag?.ifBlank { null }) }
+    fun updateMaxSnoozes(n: Int)                { _alarm.value = _alarm.value.copy(maxSnoozes = n) }
+    fun updateMessage(text: String)             { _alarm.value = _alarm.value.copy(message = text) }
 
     fun toggleRepeatDay(day: Int) {
         val days = _alarm.value.repeatDays.toMutableList()

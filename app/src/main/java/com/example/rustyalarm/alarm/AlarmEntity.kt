@@ -21,6 +21,8 @@ data class AlarmEntity(
     val smartWindowMinutes: Int = 30,
     val volumeRampSeconds: Int = 0,
     val groupTag: String? = null,
+    val maxSnoozes: Int = 0,
+    val message: String = "",
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 ) {
@@ -42,6 +44,8 @@ data class AlarmEntity(
         smartWindowMinutes = smartWindowMinutes,
         volumeRampSeconds = volumeRampSeconds,
         groupTag = groupTag,
+        maxSnoozes = maxSnoozes,
+        message = message,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
@@ -63,6 +67,8 @@ data class AlarmEntity(
             smartWindowMinutes = alarm.smartWindowMinutes,
             volumeRampSeconds = alarm.volumeRampSeconds,
             groupTag = alarm.groupTag,
+            maxSnoozes = alarm.maxSnoozes,
+            message = alarm.message,
             createdAt = alarm.createdAt,
             updatedAt = alarm.updatedAt,
         )

@@ -28,6 +28,8 @@ data class Alarm(
     val smartWindowMinutes: Int = 30,
     val volumeRampSeconds: Int = 0,
     val groupTag: String? = null,
+    val maxSnoozes: Int = 0,          // 0 = unlimited
+    val message: String = "",         // shown on ring screen, e.g. "Drink water!"
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 )

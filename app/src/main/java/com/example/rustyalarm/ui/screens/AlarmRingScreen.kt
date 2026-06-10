@@ -40,6 +40,8 @@ fun AlarmRingScreen(
     hour: Int,
     minute: Int,
     challengeType: ChallengeType = ChallengeType.NONE,
+    message: String = "",
+    snoozesRemaining: Int = Int.MAX_VALUE,
     onDismiss: () -> Unit,
     onSnooze: () -> Unit,
 ) {
@@ -145,6 +147,24 @@ fun AlarmRingScreen(
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
                 textAlign = TextAlign.Center,
             )
+
+            if (message.isNotBlank()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(
+                        text = "💬 $message",
+                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
 
             // ── today's fortune ──────────────────────
             val fortune = remember { Fortune.forToday() }
@@ -255,9 +275,19 @@ fun AlarmRingScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 OutlinedButton(
-                    onClick = onSnooze, modifier = Modifier.weight(1f).height(56.dp),
+                    onClick = onSnooze,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    enabled = snoozesRemaining > 0,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
-                ) { Text("5분 뒤") }
+                ) {
+                    Text(
+                        when {
+                            snoozesRemaining == Int.MAX_VALUE -> "5분 뒤"
+                            snoozesRemaining > 0 -> "5분 뒤 ($snoozesRemaining 회 남음)"
+                            else -> "스누즈 소진"
+                        }
+                    )
+                }
 
                 Button(
                     onClick = { if (solved) onDismiss() },

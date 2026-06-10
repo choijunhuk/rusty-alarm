@@ -174,6 +174,16 @@ fun AlarmEditScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            // Message (shown on ring screen)
+            OutlinedTextField(
+                value = alarm.message,
+                onValueChange = vm::updateMessage,
+                label = { Text("한 줄 메시지 (선택)") },
+                placeholder = { Text("예: 물 한 잔 마시기") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
             // ── Schedule section ──────────────────────
             SectionLabel("반복 / 날짜")
 
@@ -244,6 +254,20 @@ fun AlarmEditScreen(
                     steps = 5,
                 )
             }
+
+            // Snooze cap
+            Text(
+                text = if (alarm.maxSnoozes == 0) "스누즈 무제한"
+                       else "스누즈 최대 ${alarm.maxSnoozes}회",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            )
+            Slider(
+                value = alarm.maxSnoozes.toFloat(),
+                onValueChange = { vm.updateMaxSnoozes(it.toInt()) },
+                valueRange = 0f..10f,
+                steps = 9,
+            )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
 

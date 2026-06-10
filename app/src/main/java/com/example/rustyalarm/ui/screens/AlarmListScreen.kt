@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Settings
@@ -228,12 +229,39 @@ fun AlarmListScreen(
                     }
                 } else {
                     items(alarms, key = { it.id }) { alarm ->
-                        AlarmCard(
-                            alarm = alarm,
-                            onToggle = { enabled -> vm.toggleAlarm(alarm, enabled) },
-                            onClick = { onEditAlarm(alarm) },
-                            onDelete = { vm.deleteAlarm(alarm) },
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = {
+                                if (it == SwipeToDismissBoxValue.EndToStart) {
+                                    vm.deleteAlarm(alarm)
+                                    true
+                                } else false
+                            },
                         )
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            enableDismissFromStartToEnd = false,
+                            backgroundContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 24.dp),
+                                    contentAlignment = Alignment.CenterEnd,
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "삭제",
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            },
+                        ) {
+                            AlarmCard(
+                                alarm = alarm,
+                                onToggle = { enabled -> vm.toggleAlarm(alarm, enabled) },
+                                onClick = { onEditAlarm(alarm) },
+                                onDelete = { vm.deleteAlarm(alarm) },
+                            )
+                        }
                     }
                 }
             }

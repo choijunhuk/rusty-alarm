@@ -88,6 +88,8 @@ class AlarmRepository(
                     put("smartWindowMinutes", e.smartWindowMinutes)
                     put("volumeRampSeconds", e.volumeRampSeconds)
                     put("groupTag", e.groupTag)
+                    put("maxSnoozes", e.maxSnoozes)
+                    put("message", e.message)
                 }
             )
         }
@@ -125,6 +127,8 @@ class AlarmRepository(
                 smartWindowMinutes = o.optInt("smartWindowMinutes", 30),
                 volumeRampSeconds = o.optInt("volumeRampSeconds", 0),
                 groupTag = if (o.isNull("groupTag")) null else o.optString("groupTag"),
+                maxSnoozes = o.optInt("maxSnoozes", 0),
+                message = o.optString("message", ""),
             )
             save(alarm)
             count++
