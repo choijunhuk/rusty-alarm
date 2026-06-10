@@ -16,7 +16,6 @@ class AlarmScheduler(private val context: Context) {
         if (!alarm.enabled) return
 
         val triggerAtMillis = if (alarm.specificDate != null) {
-            // Specific date: set hour/minute on that calendar day
             Calendar.getInstance().apply {
                 timeInMillis = alarm.specificDate
                 set(Calendar.HOUR_OF_DAY, alarm.hour)
@@ -33,33 +32,66 @@ class AlarmScheduler(private val context: Context) {
             )
         }
 
-        val pendingIntent = buildPendingIntent(alarm)
+        // Fallback exact alarm — always armed
+        val firePendingIntent = buildPendingIntent(alarm)
+        setExact(triggerAtMillis, firePendingIntent)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-            } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+        // Smart alarm: also schedule a window-start broadcast that boots the monitor service
+        if (alarm.isSmartAlarm && alarm.smartWindowMinutes > 0) {
+            val windowStart = triggerAtMillis - alarm.smartWindowMinutes * 60_000L
+            if (windowStart > System.currentTimeMillis()) {
+                val smartIntent = buildSmartStartIntent(alarm, triggerAtMillis)
+                setExact(windowStart, smartIntent)
             }
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
         }
     }
 
     fun cancel(alarmId: Long) {
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
+        // Cancel main fire PendingIntent
+        val fireIntent = Intent(context, AlarmReceiver::class.java).apply {
             action = AlarmReceiver.ACTION_ALARM_FIRED
         }
-        val pi = PendingIntent.getBroadcast(
-            context, alarmId.toRequestCode(), intent,
+        PendingIntent.getBroadcast(
+            context, alarmId.toRequestCode(), fireIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        alarmManager.cancel(pi)
-        pi.cancel()
+        ).also {
+            alarmManager.cancel(it)
+            it.cancel()
+        }
+        // Cancel smart-start PendingIntent
+        val smartIntent = Intent(context, SmartAlarmReceiver::class.java).apply {
+            action = SmartAlarmReceiver.ACTION_SMART_START
+        }
+        PendingIntent.getBroadcast(
+            context, alarmId.toSmartRequestCode(), smartIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        ).also {
+            alarmManager.cancel(it)
+            it.cancel()
+        }
+    }
+
+    private fun setExact(triggerAtMillis: Long, pi: PendingIntent) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms())
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+            else
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+        }
     }
 
     private fun buildPendingIntent(alarm: Alarm): PendingIntent {
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
+        val intent = buildFireIntent(alarm)
+        return PendingIntent.getBroadcast(
+            context, alarm.id.toRequestCode(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun buildFireIntent(alarm: Alarm): Intent =
+        Intent(context, AlarmReceiver::class.java).apply {
             action = AlarmReceiver.ACTION_ALARM_FIRED
             putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarm.id)
             putExtra(AlarmReceiver.EXTRA_ALARM_TITLE, alarm.title)
@@ -71,11 +103,24 @@ class AlarmScheduler(private val context: Context) {
             putExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE, alarm.challengeType.name)
             putExtra(AlarmReceiver.EXTRA_REPEAT_DAYS, alarm.repeatDays.toIntArray())
         }
+
+    private fun buildSmartStartIntent(alarm: Alarm, deadlineMillis: Long): PendingIntent {
+        val intent = Intent(context, SmartAlarmReceiver::class.java).apply {
+            action = SmartAlarmReceiver.ACTION_SMART_START
+            putExtra(SmartAlarmReceiver.EXTRA_DEADLINE, deadlineMillis)
+            putExtra(SmartAlarmReceiver.EXTRA_ALARM_INTENT, buildFireIntent(alarm))
+        }
         return PendingIntent.getBroadcast(
-            context, alarm.id.toRequestCode(), intent,
+            context, alarm.id.toSmartRequestCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
 
     private fun Long.toRequestCode(): Int = (this % Int.MAX_VALUE).toInt()
+    private fun Long.toSmartRequestCode(): Int =
+        ((this + SMART_REQUEST_OFFSET) % Int.MAX_VALUE).toInt()
+
+    companion object {
+        private const val SMART_REQUEST_OFFSET = 500_000_000L
+    }
 }

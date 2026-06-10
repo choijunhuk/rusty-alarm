@@ -17,6 +17,8 @@ data class AlarmEntity(
     val soundEnabled: Boolean = true,
     val ringtoneUri: String? = null,
     val challengeType: String = ChallengeType.NONE.name,
+    val isSmartAlarm: Boolean = false,
+    val smartWindowMinutes: Int = 30,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 ) {
@@ -34,6 +36,8 @@ data class AlarmEntity(
         ringtoneUri = ringtoneUri,
         challengeType = runCatching { ChallengeType.valueOf(challengeType) }
             .getOrDefault(ChallengeType.NONE),
+        isSmartAlarm = isSmartAlarm,
+        smartWindowMinutes = smartWindowMinutes,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
@@ -51,6 +55,8 @@ data class AlarmEntity(
             soundEnabled = alarm.soundEnabled,
             ringtoneUri = alarm.ringtoneUri,
             challengeType = alarm.challengeType.name,
+            isSmartAlarm = alarm.isSmartAlarm,
+            smartWindowMinutes = alarm.smartWindowMinutes,
             createdAt = alarm.createdAt,
             updatedAt = alarm.updatedAt,
         )

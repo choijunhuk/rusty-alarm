@@ -15,12 +15,14 @@ data class Alarm(
     val hour: Int = 8,
     val minute: Int = 0,
     val repeatDays: List<Int> = emptyList(),
-    val specificDate: Long? = null,        // non-null → one-time on this epoch-millis date
+    val specificDate: Long? = null,
     val enabled: Boolean = true,
     val vibrate: Boolean = true,
     val soundEnabled: Boolean = true,
-    val ringtoneUri: String? = null,       // null → system default alarm sound
+    val ringtoneUri: String? = null,
     val challengeType: ChallengeType = ChallengeType.NONE,
+    val isSmartAlarm: Boolean = false,
+    val smartWindowMinutes: Int = 30,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 )

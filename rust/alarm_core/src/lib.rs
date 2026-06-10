@@ -1,18 +1,24 @@
 mod alarm;
 mod formatter;
+mod sleep_analysis;
 mod time_calc;
 
 // Re-export pure Rust API for use in tests / other Rust code
 pub use alarm::validate_alarm_time;
 pub use formatter::{format_time, get_repeat_days_label};
+pub use sleep_analysis::{analyze_sleep_window, should_wake_now};
 pub use time_calc::calculate_next_alarm_timestamp;
 
 // ── JNI bindings ─────────────────────────────────────────────
 // Class: com.example.rustyalarm.rust.RustAlarmCore
 // Each `external fun` in the Kotlin object maps to one function here.
+//
+// NOTE: The "modern" replacement for these hand-written bindings is the UniFFI
+// interface declared in `src/alarm_core.udl`. UniFFI generates type-safe
+// Kotlin bindings automatically; see the README "UniFFI migration" section.
 
 use jni::objects::JClass;
-use jni::sys::{jboolean, jint, jintArray, jlong, jstring};
+use jni::sys::{jboolean, jfloat, jfloatArray, jint, jintArray, jlong, jstring};
 use jni::JNIEnv;
 
 #[no_mangle]
@@ -72,4 +78,35 @@ pub extern "C" fn Java_com_example_rustyalarm_rust_RustAlarmCore_nativeGetRepeat
     env.new_string(result)
         .expect("Failed to create Java string")
         .into_raw()
+}
+
+#[no_mangle]
+pub extern "C" fn Java_com_example_rustyalarm_rust_RustAlarmCore_nativeAnalyzeSleepWindow(
+    env: JNIEnv<'_>,
+    _class: JClass<'_>,
+    samples: jfloatArray,
+) -> jfloat {
+    let arr = unsafe { jni::objects::JFloatArray::from_raw(samples) };
+    let len = env.get_array_length(&arr).unwrap_or(0) as usize;
+    let mut buf = vec![0.0f32; len];
+    if len > 0 {
+        let _ = env.get_float_array_region(&arr, 0, &mut buf);
+    }
+    sleep_analysis::analyze_sleep_window(buf)
+}
+
+#[no_mangle]
+pub extern "C" fn Java_com_example_rustyalarm_rust_RustAlarmCore_nativeShouldWakeNow(
+    env: JNIEnv<'_>,
+    _class: JClass<'_>,
+    samples: jfloatArray,
+    threshold: jfloat,
+) -> jboolean {
+    let arr = unsafe { jni::objects::JFloatArray::from_raw(samples) };
+    let len = env.get_array_length(&arr).unwrap_or(0) as usize;
+    let mut buf = vec![0.0f32; len];
+    if len > 0 {
+        let _ = env.get_float_array_region(&arr, 0, &mut buf);
+    }
+    sleep_analysis::should_wake_now(buf, threshold) as jboolean
 }

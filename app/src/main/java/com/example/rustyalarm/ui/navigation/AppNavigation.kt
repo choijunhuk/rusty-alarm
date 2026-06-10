@@ -6,27 +6,40 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.rustyalarm.alarm.AlarmEventDao
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.ui.screens.AlarmEditScreen
 import com.example.rustyalarm.ui.screens.AlarmListScreen
+import com.example.rustyalarm.ui.screens.StatsScreen
 
 sealed class Screen(val route: String) {
-    object List : Screen("alarm_list")
-    object Edit : Screen("alarm_edit/{alarmId}") {
+    object List  : Screen("alarm_list")
+    object Stats : Screen("stats")
+    object Edit  : Screen("alarm_edit/{alarmId}") {
         fun route(alarmId: Long = -1L) = "alarm_edit/$alarmId"
     }
 }
 
 @Composable
-fun AppNavigation(repository: AlarmRepository) {
+fun AppNavigation(
+    repository: AlarmRepository,
+    eventDao: AlarmEventDao,
+) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = Screen.List.route) {
         composable(Screen.List.route) {
             AlarmListScreen(
                 repository = repository,
-                onAddAlarm = { navController.navigate(Screen.Edit.route()) },
+                onAddAlarm  = { navController.navigate(Screen.Edit.route()) },
                 onEditAlarm = { alarm -> navController.navigate(Screen.Edit.route(alarm.id)) },
+                onOpenStats = { navController.navigate(Screen.Stats.route) },
+            )
+        }
+        composable(Screen.Stats.route) {
+            StatsScreen(
+                eventDao = eventDao,
+                onBack = { navController.popBackStack() },
             )
         }
         composable(

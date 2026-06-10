@@ -222,6 +222,30 @@ fun AlarmEditScreen(
                 }
             }
 
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+
+            // ── Smart alarm section ──────────────────
+            SectionLabel("스마트 알람")
+            ToggleRow(
+                "얕은 잠 자동 감지",
+                alarm.isSmartAlarm,
+                vm::updateSmartAlarm,
+            )
+            if (alarm.isSmartAlarm) {
+                Text(
+                    text = "기상 ${alarm.smartWindowMinutes}분 전부터 가속도계로 잠 깊이를 분석해, " +
+                        "얕은 잠 구간에 미리 깨워 드려요.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                )
+                Slider(
+                    value = alarm.smartWindowMinutes.toFloat(),
+                    onValueChange = { vm.updateSmartWindow(it.toInt()) },
+                    valueRange = 10f..45f,
+                    steps = 6,
+                )
+            }
+
             if (isEdit) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                 ToggleRow("활성화", alarm.enabled, vm::updateEnabled)

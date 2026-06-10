@@ -25,7 +25,9 @@ class MainActivity : ComponentActivity() {
 
         requestNotificationPermissionIfNeeded()
 
-        val repository = (application as RustyAlarmApplication).repository
+        val app = application as RustyAlarmApplication
+        val repository = app.repository
+        val eventDao = app.database.alarmEventDao()
 
         setContent {
             RustyAlarmTheme {
@@ -33,7 +35,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    AppNavigation(repository = repository)
+                    AppNavigation(
+                        repository = repository,
+                        eventDao = eventDao,
+                    )
                 }
             }
         }

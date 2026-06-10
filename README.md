@@ -160,12 +160,37 @@ git push -u origin main
 
 ---
 
+## 추가된 기능
+
+### 알람 통계 화면
+- `AlarmEvent` 엔티티로 FIRED / DISMISSED / SNOOZED 이벤트를 자동 기록
+- 최근 7일 알람 발동 횟수 바 차트 (Compose Canvas 직접 구현 — 외부 차트 라이브러리 미사용)
+- 평균 반응 시간, 기상 완료율, 챌린지 사용 현황 통계
+- 알람 목록 우상단의 통계 아이콘으로 진입
+
+### 스마트 알람 (수면 감지)
+- 기상 시각 N분 전부터 가속도계로 잠 깊이를 분석
+- Rust `sleep_analysis.rs` — 표본의 분산을 [0,1)로 정규화하여 wakefulness 점수 산출
+- `SleepMonitorService` (Foreground Service) — 1분마다 점수 평가, 임계값 초과 시 알람 조기 발동
+- 임계값 미초과 시 원래 시각의 fallback exact alarm이 정상 발동
+- 알람 편집 화면의 "스마트 알람" 토글 + 10~45분 슬라이더로 윈도우 조절
+
+### UniFFI 마이그레이션 경로
+- `rust/alarm_core/src/alarm_core.udl` — UniFFI 인터페이스 정의 파일
+- 활성화 방법:
+  ```bash
+  cargo install uniffi-bindgen
+  cd rust/alarm_core
+  # Cargo.toml의 주석 처리된 uniffi dependency를 활성화한 뒤:
+  uniffi-bindgen generate src/alarm_core.udl --language kotlin -o ../../app/src/main/java
+  ```
+- 기존 JNI 바인딩과 함께 사용 가능 — 점진적 마이그레이션
+
 ## 향후 개선 예정
 
-- [ ] 알람 사운드 선택 (RingtoneManager)
-- [ ] UniFFI로 JNI 보일러플레이트 제거
+- [ ] UniFFI 활성화 (현재는 UDL + 문서만, 빌드 통합 미적용)
 - [ ] 위젯 (Glance API)
 - [ ] Wear OS 연동
-- [ ] 알람 통계 (언제 끄는지, 스누즈 횟수)
 - [ ] Hilt 의존성 주입 적용
 - [ ] Espresso / Compose UI 테스트
+- [ ] WorkManager로 BootReceiver 보강 (Doze 모드 내성)

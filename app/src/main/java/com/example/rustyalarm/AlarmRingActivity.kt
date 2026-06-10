@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.example.rustyalarm.alarm.AlarmDatabase
+import com.example.rustyalarm.alarm.AlarmEvent
+import com.example.rustyalarm.alarm.AlarmEventType
 import com.example.rustyalarm.alarm.AlarmNotificationManager
 import com.example.rustyalarm.alarm.AlarmReceiver
 import com.example.rustyalarm.alarm.AlarmSchedulerSnooze
@@ -63,6 +66,8 @@ class AlarmRingActivity : ComponentActivity() {
         if (soundEnabled) startAlarmSound(ringtoneUri)
         if (vibrate)      startVibration()
 
+        val firedAt = System.currentTimeMillis()
+
         setContent {
             RustyAlarmTheme {
                 Surface(
@@ -78,6 +83,18 @@ class AlarmRingActivity : ComponentActivity() {
                         onDismiss = {
                             stopSounds()
                             AlarmNotificationManager.cancelNotification(this, alarmId)
+                            val responseSec = (System.currentTimeMillis() - firedAt) / 1000L
+                            CoroutineScope(Dispatchers.IO).launch {
+                                AlarmDatabase.getDatabase(this@AlarmRingActivity)
+                                    .alarmEventDao().insert(
+                                        AlarmEvent(
+                                            alarmId = alarmId,
+                                            eventType = AlarmEventType.DISMISSED.name,
+                                            responseSeconds = responseSec,
+                                            challengeType = challengeType.name,
+                                        )
+                                    )
+                            }
                             finish()
                         },
                         onSnooze = {
@@ -95,6 +112,14 @@ class AlarmRingActivity : ComponentActivity() {
                                 challengeType = ChallengeType.NONE,
                             )
                             CoroutineScope(Dispatchers.IO).launch {
+                                AlarmDatabase.getDatabase(this@AlarmRingActivity)
+                                    .alarmEventDao().insert(
+                                        AlarmEvent(
+                                            alarmId = alarmId,
+                                            eventType = AlarmEventType.SNOOZED.name,
+                                            challengeType = challengeType.name,
+                                        )
+                                    )
                                 AlarmSchedulerSnooze(this@AlarmRingActivity).scheduleAt(snooze, snoozeMillis)
                             }
                             finish()

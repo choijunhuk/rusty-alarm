@@ -1,0 +1,28 @@
+// UniFFI interface definition for alarm_core.
+//
+// This UDL file is the "modern" replacement for the hand-written JNI
+// bindings. It declares the public surface in a language-agnostic way;
+// `uniffi-bindgen` generates type-safe Kotlin / Swift bindings from it.
+//
+// Build:
+//   cargo install uniffi-bindgen
+//   uniffi-bindgen generate src/alarm_core.udl --language kotlin
+//
+// The generated Kotlin file replaces the manual `external fun` declarations
+// in `RustAlarmCore.kt`, with proper Result<T> and null-safety.
+
+namespace alarm_core {
+    boolean validate_alarm_time(i32 hour, i32 minute);
+    string format_time(i32 hour, i32 minute);
+    i64 calculate_next_alarm_timestamp(
+        i64 current_millis,
+        i32 hour,
+        i32 minute,
+        sequence<i32> repeat_days
+    );
+    string get_repeat_days_label(sequence<i32> repeat_days);
+
+    // Sleep / smart alarm
+    f32 analyze_sleep_window(sequence<f32> samples);
+    boolean should_wake_now(sequence<f32> samples, f32 threshold);
+};

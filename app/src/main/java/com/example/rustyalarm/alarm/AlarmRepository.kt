@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.map
 
 class AlarmRepository(
     private val dao: AlarmDao,
+    private val eventDao: AlarmEventDao,
     private val scheduler: AlarmScheduler,
 ) {
     val alarms: Flow<List<Alarm>> = dao.getAllFlow().map { list ->
@@ -28,6 +29,7 @@ class AlarmRepository(
 
     suspend fun delete(alarm: Alarm) {
         scheduler.cancel(alarm.id)
+        eventDao.deleteByAlarmId(alarm.id)
         dao.deleteById(alarm.id)
     }
 

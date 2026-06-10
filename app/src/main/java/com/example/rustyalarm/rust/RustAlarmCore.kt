@@ -23,6 +23,8 @@ object RustAlarmCore {
         repeatDays: IntArray,
     ): Long
     private external fun nativeGetRepeatDaysLabel(repeatDays: IntArray): String
+    private external fun nativeAnalyzeSleepWindow(samples: FloatArray): Float
+    private external fun nativeShouldWakeNow(samples: FloatArray, threshold: Float): Boolean
 
     // ── Public API (with Kotlin fallbacks) ───────────────────────
 
@@ -49,6 +51,14 @@ object RustAlarmCore {
     fun getRepeatDaysLabel(repeatDays: IntArray): String =
         if (isAvailable) nativeGetRepeatDaysLabel(repeatDays)
         else fallbackRepeatDaysLabel(repeatDays)
+
+    fun analyzeSleepWindow(samples: FloatArray): Float =
+        if (isAvailable) nativeAnalyzeSleepWindow(samples)
+        else fallbackAnalyzeSleepWindow(samples)
+
+    fun shouldWakeNow(samples: FloatArray, threshold: Float): Boolean =
+        if (isAvailable) nativeShouldWakeNow(samples, threshold)
+        else fallbackAnalyzeSleepWindow(samples) >= threshold
 
     // ── Kotlin fallbacks (used when .so not loaded) ──────────────
 
@@ -87,5 +97,16 @@ object RustAlarmCore {
         if (repeatDays.isEmpty()) return "일회성"
         val names = arrayOf("일", "월", "화", "수", "목", "금", "토")
         return repeatDays.sorted().joinToString(" ") { names[it] }
+    }
+
+    private fun fallbackAnalyzeSleepWindow(samples: FloatArray): Float {
+        if (samples.size < 2) return 0f
+        val mean = samples.sum() / samples.size
+        val variance = samples.fold(0f) { acc, x ->
+            val d = x - mean
+            acc + d * d
+        } / samples.size
+        val stdDev = kotlin.math.sqrt(variance)
+        return stdDev / (1f + stdDev)
     }
 }

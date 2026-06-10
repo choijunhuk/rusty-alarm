@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +33,7 @@ fun AlarmListScreen(
     repository: AlarmRepository,
     onAddAlarm: () -> Unit,
     onEditAlarm: (Alarm) -> Unit,
+    onOpenStats: () -> Unit = {},
 ) {
     val vm: AlarmListViewModel = viewModel(factory = AlarmListViewModel.Factory(repository))
     val alarms by vm.alarms.collectAsStateWithLifecycle()
@@ -64,6 +66,15 @@ fun AlarmListScreen(
                                 text = "Rusty Alarm",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onOpenStats) {
+                            Icon(
+                                Icons.Default.Insights,
+                                contentDescription = "통계",
+                                tint = MaterialTheme.colorScheme.secondary,
                             )
                         }
                     },

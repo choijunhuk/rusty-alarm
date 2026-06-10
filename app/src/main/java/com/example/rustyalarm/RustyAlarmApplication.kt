@@ -9,9 +9,11 @@ import com.example.rustyalarm.alarm.AlarmScheduler
 class RustyAlarmApplication : Application() {
 
     val database by lazy { AlarmDatabase.getDatabase(this) }
+
     val repository by lazy {
         AlarmRepository(
             dao = database.alarmDao(),
+            eventDao = database.alarmEventDao(),
             scheduler = AlarmScheduler(this),
         )
     }

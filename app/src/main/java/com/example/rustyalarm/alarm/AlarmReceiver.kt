@@ -39,9 +39,21 @@ class AlarmReceiver : BroadcastReceiver() {
 
         if (vibrate) vibrate(context)
 
+        val now = System.currentTimeMillis()
+        rememberFiredAt(context, alarmId, now)
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db        = AlarmDatabase.getDatabase(context)
+                val db = AlarmDatabase.getDatabase(context)
+                db.alarmEventDao().insert(
+                    AlarmEvent(
+                        alarmId = alarmId,
+                        eventType = AlarmEventType.FIRED.name,
+                        timestamp = now,
+                        challengeType = challengeType,
+                    )
+                )
+
                 val scheduler = AlarmScheduler(context)
                 if (repeatDays.isNotEmpty()) {
                     db.alarmDao().getById(alarmId)?.let {
@@ -64,6 +76,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val vibrate      = intent.getBooleanExtra(EXTRA_VIBRATE, true)
         val soundEnabled = intent.getBooleanExtra(EXTRA_SOUND_ENABLED, true)
         val ringtoneUri  = intent.getStringExtra(EXTRA_RINGTONE_URI)
+        val challengeType = intent.getStringExtra(EXTRA_CHALLENGE_TYPE) ?: ChallengeType.NONE.name
 
         AlarmNotificationManager.cancelNotification(context, alarmId)
 
@@ -82,6 +95,13 @@ class AlarmReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                AlarmDatabase.getDatabase(context).alarmEventDao().insert(
+                    AlarmEvent(
+                        alarmId = alarmId,
+                        eventType = AlarmEventType.SNOOZED.name,
+                        challengeType = challengeType,
+                    )
+                )
                 AlarmSchedulerSnooze(context).scheduleAt(snoozeAlarm, snoozeMillis)
             } finally {
                 pendingResult.finish()
@@ -90,7 +110,26 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 
     private fun handleDismiss(context: Context, intent: Intent) {
-        AlarmNotificationManager.cancelNotification(context, intent.getLongExtra(EXTRA_ALARM_ID, -1L))
+        val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
+        AlarmNotificationManager.cancelNotification(context, alarmId)
+
+        val firedAt = consumeFiredAt(context, alarmId)
+        val responseSec = firedAt?.let { (System.currentTimeMillis() - it) / 1000L }
+
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                AlarmDatabase.getDatabase(context).alarmEventDao().insert(
+                    AlarmEvent(
+                        alarmId = alarmId,
+                        eventType = AlarmEventType.DISMISSED.name,
+                        responseSeconds = responseSec,
+                    )
+                )
+            } finally {
+                pendingResult.finish()
+            }
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -106,6 +145,19 @@ class AlarmReceiver : BroadcastReceiver() {
             else
                 v.vibrate(pattern, 0)
         }
+    }
+
+    private fun rememberFiredAt(context: Context, alarmId: Long, ts: Long) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putLong("fired_$alarmId", ts).apply()
+    }
+
+    private fun consumeFiredAt(context: Context, alarmId: Long): Long? {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val key = "fired_$alarmId"
+        val v = if (prefs.contains(key)) prefs.getLong(key, -1L) else null
+        prefs.edit().remove(key).apply()
+        return v
     }
 
     companion object {
@@ -124,5 +176,6 @@ class AlarmReceiver : BroadcastReceiver() {
         const val EXTRA_REPEAT_DAYS    = "repeat_days"
 
         const val SNOOZE_ID_OFFSET     = 100_000L
+        private const val PREFS        = "rusty_alarm_stats"
     }
 }

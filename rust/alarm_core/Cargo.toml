@@ -1,6 +1,6 @@
 [package]
 name = "alarm_core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [lib]
@@ -11,5 +11,8 @@ name = "alarm_core"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 jni = { version = "0.21", default-features = false }
 
-[dev-dependencies]
-# tests use std
+# NOTE: UniFFI migration is documented in `src/alarm_core.udl` and README.
+# Enable it by adding:
+#   uniffi = { version = "0.27" }
+#   [build-dependencies] uniffi = { version = "0.27", features = ["build"] }
+# Then run `uniffi-bindgen generate src/alarm_core.udl --language kotlin`.
