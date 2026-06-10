@@ -1,0 +1,204 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.example.rustyalarm"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="34" />
+10
+11    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+11-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:4:5-81
+11-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:4:22-78
+12    <uses-permission android:name="android.permission.VIBRATE" />
+12-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:5:5-66
+12-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:5:22-63
+13    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+13-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:6:5-77
+13-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:6:22-74
+14    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+14-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:7:5-79
+14-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:7:22-76
+15    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+15-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:8:5-74
+15-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:8:22-71
+16    <uses-permission android:name="android.permission.WAKE_LOCK" />
+16-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:9:5-68
+16-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:9:22-65
+17
+18    <permission
+18-->[androidx.core:core:1.13.1] /Users/choi/.gradle/caches/8.11.1/transforms/789d6f861db9a85ffd38507b63679491/transformed/core-1.13.1/AndroidManifest.xml:22:5-24:47
+19        android:name="com.example.rustyalarm.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+19-->[androidx.core:core:1.13.1] /Users/choi/.gradle/caches/8.11.1/transforms/789d6f861db9a85ffd38507b63679491/transformed/core-1.13.1/AndroidManifest.xml:23:9-81
+20        android:protectionLevel="signature" />
+20-->[androidx.core:core:1.13.1] /Users/choi/.gradle/caches/8.11.1/transforms/789d6f861db9a85ffd38507b63679491/transformed/core-1.13.1/AndroidManifest.xml:24:9-44
+21
+22    <uses-permission android:name="com.example.rustyalarm.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+22-->[androidx.core:core:1.13.1] /Users/choi/.gradle/caches/8.11.1/transforms/789d6f861db9a85ffd38507b63679491/transformed/core-1.13.1/AndroidManifest.xml:26:5-97
+22-->[androidx.core:core:1.13.1] /Users/choi/.gradle/caches/8.11.1/transforms/789d6f861db9a85ffd38507b63679491/transformed/core-1.13.1/AndroidManifest.xml:26:22-94
+23
+24    <application
+24-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:11:5-49:19
+25        android:name="com.example.rustyalarm.RustyAlarmApplication"
+25-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:12:9-46
+26        android:allowBackup="true"
+26-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:13:9-35
+27        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+27-->[androidx.core:core:1.13.1] /Users/choi/.gradle/caches/8.11.1/transforms/789d6f861db9a85ffd38507b63679491/transformed/core-1.13.1/AndroidManifest.xml:28:18-86
+28        android:debuggable="true"
+29        android:extractNativeLibs="false"
+30        android:label="@string/app_name"
+30-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:14:9-41
+31        android:supportsRtl="true"
+31-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:15:9-35
+32        android:testOnly="true"
+33        android:theme="@style/Theme.RustyAlarm" >
+33-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:16:9-48
+34        <activity
+34-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:18:9-26:20
+35            android:name="com.example.rustyalarm.MainActivity"
+35-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:19:13-41
+36            android:exported="true"
+36-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:20:13-36
+37            android:launchMode="singleTop" >
+37-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:21:13-43
+38            <intent-filter>
+38-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:22:13-25:29
+39                <action android:name="android.intent.action.MAIN" />
+39-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:23:17-69
+39-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:23:25-66
+40
+41                <category android:name="android.intent.category.LAUNCHER" />
+41-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:24:17-77
+41-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:24:27-74
+42            </intent-filter>
+43        </activity>
+44        <activity
+44-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:28:9-34:43
+45            android:name="com.example.rustyalarm.AlarmRingActivity"
+45-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:29:13-46
+46            android:exported="false"
+46-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:30:13-37
+47            android:keepScreenOn="true"
+47-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:34:13-40
+48            android:launchMode="singleTop"
+48-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:31:13-43
+49            android:showWhenLocked="true"
+49-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:32:13-42
+50            android:turnScreenOn="true" />
+50-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:33:13-40
+51
+52        <receiver
+52-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:36:9-38:40
+53            android:name="com.example.rustyalarm.alarm.AlarmReceiver"
+53-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:37:13-48
+54            android:exported="false" />
+54-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:38:13-37
+55        <receiver
+55-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:40:9-47:20
+56            android:name="com.example.rustyalarm.alarm.BootReceiver"
+56-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:41:13-47
+57            android:exported="true" >
+57-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:42:13-36
+58            <intent-filter>
+58-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:43:13-46:29
+59                <action android:name="android.intent.action.BOOT_COMPLETED" />
+59-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:44:17-79
+59-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:44:25-76
+60                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+60-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:45:17-86
+60-->/Users/choi/Desktop/rusty-alarm/app/src/main/AndroidManifest.xml:45:25-83
+61            </intent-filter>
+62        </receiver>
+63
+64        <activity
+64-->[androidx.compose.ui:ui-test-manifest:1.6.6] /Users/choi/.gradle/caches/8.11.1/transforms/21564ede7717584f85d0b1ca1d314221/transformed/ui-test-manifest-1.6.6/AndroidManifest.xml:23:9-25:39
+65            android:name="androidx.activity.ComponentActivity"
+65-->[androidx.compose.ui:ui-test-manifest:1.6.6] /Users/choi/.gradle/caches/8.11.1/transforms/21564ede7717584f85d0b1ca1d314221/transformed/ui-test-manifest-1.6.6/AndroidManifest.xml:24:13-63
+66            android:exported="true" />
+66-->[androidx.compose.ui:ui-test-manifest:1.6.6] /Users/choi/.gradle/caches/8.11.1/transforms/21564ede7717584f85d0b1ca1d314221/transformed/ui-test-manifest-1.6.6/AndroidManifest.xml:25:13-36
+67        <activity
+67-->[androidx.compose.ui:ui-tooling-android:1.6.6] /Users/choi/.gradle/caches/8.11.1/transforms/2289b84fd0f228272d89c4b8ffabc4de/transformed/ui-tooling-release/AndroidManifest.xml:23:9-25:39
+68            android:name="androidx.compose.ui.tooling.PreviewActivity"
+68-->[androidx.compose.ui:ui-tooling-android:1.6.6] /Users/choi/.gradle/caches/8.11.1/transforms/2289b84fd0f228272d89c4b8ffabc4de/transformed/ui-tooling-release/AndroidManifest.xml:24:13-71
+69            android:exported="true" />
+69-->[androidx.compose.ui:ui-tooling-android:1.6.6] /Users/choi/.gradle/caches/8.11.1/transforms/2289b84fd0f228272d89c4b8ffabc4de/transformed/ui-tooling-release/AndroidManifest.xml:25:13-36
+70
+71        <provider
+71-->[androidx.emoji2:emoji2:1.3.0] /Users/choi/.gradle/caches/8.11.1/transforms/6d100519b873a40814c1a6f88309d4aa/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+72            android:name="androidx.startup.InitializationProvider"
+72-->[androidx.emoji2:emoji2:1.3.0] /Users/choi/.gradle/caches/8.11.1/transforms/6d100519b873a40814c1a6f88309d4aa/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+73            android:authorities="com.example.rustyalarm.androidx-startup"
+73-->[androidx.emoji2:emoji2:1.3.0] /Users/choi/.gradle/caches/8.11.1/transforms/6d100519b873a40814c1a6f88309d4aa/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+74            android:exported="false" >
+74-->[androidx.emoji2:emoji2:1.3.0] /Users/choi/.gradle/caches/8.11.1/transforms/6d100519b873a40814c1a6f88309d4aa/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+75            <meta-data
+75-->[androidx.emoji2:emoji2:1.3.0] /Users/choi/.gradle/caches/8.11.1/transforms/6d100519b873a40814c1a6f88309d4aa/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+76                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+76-->[androidx.emoji2:emoji2:1.3.0] /Users/choi/.gradle/caches/8.11.1/transforms/6d100519b873a40814c1a6f88309d4aa/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+77                android:value="androidx.startup" />
+77-->[androidx.emoji2:emoji2:1.3.0] /Users/choi/.gradle/caches/8.11.1/transforms/6d100519b873a40814c1a6f88309d4aa/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+78            <meta-data
+78-->[androidx.lifecycle:lifecycle-process:2.7.0] /Users/choi/.gradle/caches/8.11.1/transforms/f873be5aaea56ab6006764f69f344f7d/transformed/lifecycle-process-2.7.0/AndroidManifest.xml:29:13-31:52
+79                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+79-->[androidx.lifecycle:lifecycle-process:2.7.0] /Users/choi/.gradle/caches/8.11.1/transforms/f873be5aaea56ab6006764f69f344f7d/transformed/lifecycle-process-2.7.0/AndroidManifest.xml:30:17-78
+80                android:value="androidx.startup" />
+80-->[androidx.lifecycle:lifecycle-process:2.7.0] /Users/choi/.gradle/caches/8.11.1/transforms/f873be5aaea56ab6006764f69f344f7d/transformed/lifecycle-process-2.7.0/AndroidManifest.xml:31:17-49
+81            <meta-data
+81-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+82                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+83                android:value="androidx.startup" />
+83-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+84        </provider>
+85
+86        <service
+86-->[androidx.room:room-runtime:2.6.1] /Users/choi/.gradle/caches/8.11.1/transforms/35a7771aff436c8579e9b0645a768e17/transformed/room-runtime-2.6.1/AndroidManifest.xml:24:9-28:63
+87            android:name="androidx.room.MultiInstanceInvalidationService"
+87-->[androidx.room:room-runtime:2.6.1] /Users/choi/.gradle/caches/8.11.1/transforms/35a7771aff436c8579e9b0645a768e17/transformed/room-runtime-2.6.1/AndroidManifest.xml:25:13-74
+88            android:directBootAware="true"
+88-->[androidx.room:room-runtime:2.6.1] /Users/choi/.gradle/caches/8.11.1/transforms/35a7771aff436c8579e9b0645a768e17/transformed/room-runtime-2.6.1/AndroidManifest.xml:26:13-43
+89            android:exported="false" />
+89-->[androidx.room:room-runtime:2.6.1] /Users/choi/.gradle/caches/8.11.1/transforms/35a7771aff436c8579e9b0645a768e17/transformed/room-runtime-2.6.1/AndroidManifest.xml:27:13-37
+90
+91        <receiver
+91-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+92            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+92-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+93            android:directBootAware="false"
+93-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+94            android:enabled="true"
+94-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+95            android:exported="true"
+95-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+96            android:permission="android.permission.DUMP" >
+96-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+97            <intent-filter>
+97-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+98                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+98-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+98-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+99            </intent-filter>
+100            <intent-filter>
+100-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+101                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+101-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+101-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+102            </intent-filter>
+103            <intent-filter>
+103-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+104                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+104-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+104-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+105            </intent-filter>
+106            <intent-filter>
+106-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+107                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+107-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+107-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/choi/.gradle/caches/8.11.1/transforms/0d6010b10b5ed1db7e0f0e7f80fd81f9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+108            </intent-filter>
+109        </receiver>
+110    </application>
+111
+112</manifest>

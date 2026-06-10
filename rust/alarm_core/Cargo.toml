@@ -1,0 +1,15 @@
+[package]
+name = "alarm_core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "alarm_core"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+jni = { version = "0.21", default-features = false }
+
+[dev-dependencies]
+# tests use std

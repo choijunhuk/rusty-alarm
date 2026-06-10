@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="add_alarm">알람 추가</string>
+    <string name="alarm_channel_desc">알람 알림</string>
+    <string name="alarm_channel_name">알람</string>
+    <string name="alarm_title_hint">알람 이름</string>
+    <string name="app_name">Rusty Alarm</string>
+    <string name="cancel">취소</string>
+    <string name="delete">삭제</string>
+    <string name="dismiss">끄기</string>
+    <string name="go_to_settings">설정으로 이동</string>
+    <string name="no_alarms">등록된 알람이 없습니다</string>
+    <string name="notification_title">알람</string>
+    <string name="one_time">일회성</string>
+    <string name="permission_exact_alarm_msg">정확한 시간에 알람을 받으려면 설정에서 \"정확한 알람 설정\" 권한을 허용해 주세요.</string>
+    <string name="permission_exact_alarm_title">정확한 알람 권한 필요</string>
+    <string name="permission_notification_msg">알람을 받으려면 알림 권한이 필요합니다.</string>
+    <string name="permission_notification_title">알림 권한 필요</string>
+    <string name="repeat_days">반복 요일</string>
+    <string name="save">저장</string>
+    <string name="snooze">5분 뒤</string>
+    <string name="vibrate">진동</string>
+    <style name="Theme.RustyAlarm" parent="android:Theme.Material.NoTitleBar"/>
+</resources>
