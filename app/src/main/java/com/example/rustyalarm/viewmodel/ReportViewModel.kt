@@ -21,6 +21,8 @@ data class WeeklyReport(
     val avgWakeupHHMM: String = "—",
     val streakDays: Int = 0,
     val ready: Boolean = false,
+    /** Map<yyyy-MM-dd, dismissedCount> for the last 30 days, oldest first. */
+    val heatmap: List<Pair<String, Int>> = emptyList(),
 )
 
 class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
@@ -53,6 +55,26 @@ class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
 
             val streak = computeStreak(eventDao.dismissedDayKeys())
 
+            // Heatmap — last 30 days of DISMISSED counts
+            val cal30 = Calendar.getInstance()
+            cal30.add(Calendar.DAY_OF_YEAR, -29)
+            val sinceHeat = cal30.timeInMillis
+            val dismissedDayMap = eventDao.eventsSince(sinceHeat)
+                .filter { it.eventType == AlarmEventType.DISMISSED.name }
+                .groupBy {
+                    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(it.timestamp))
+                }
+                .mapValues { it.value.size }
+            val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val heatmap = (29 downTo 0).map { offset ->
+                Calendar.getInstance().apply {
+                    add(Calendar.DAY_OF_YEAR, -offset)
+                }.let {
+                    val key = fmt.format(it.time)
+                    key to (dismissedDayMap[key] ?: 0)
+                }
+            }
+
             _report.value = WeeklyReport(
                 fired = fired,
                 dismissed = dismissed,
@@ -60,6 +82,7 @@ class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
                 avgWakeupHHMM = avgWakeup,
                 streakDays = streak,
                 ready = true,
+                heatmap = heatmap,
             )
         }
     }

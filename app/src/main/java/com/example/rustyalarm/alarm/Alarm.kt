@@ -10,6 +10,7 @@ enum class ChallengeType(val label: String) {
     SHAKE_HARD("흔들기 — 어려움 25회"),
     TYPING("타이핑 챌린지"),
     TETRIS("테트리스 한 줄"),
+    STEP_COUNT("걷기 20걸음"),
 }
 
 data class Alarm(

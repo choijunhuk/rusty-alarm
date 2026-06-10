@@ -124,8 +124,78 @@ fun ReportScreen(
                     }
                 }
 
+                // ── Monthly heatmap ─────────────────────
+                if (report.heatmap.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("최근 30일 기상 히트맵",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.secondary)
+                            Spacer(Modifier.height(12.dp))
+                            HeatmapGrid(data = report.heatmap)
+                            Spacer(Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("적음",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                listOf(0.15f, 0.35f, 0.6f, 0.9f).forEach { level ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(12.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = level),
+                                                RoundedCornerShape(2.dp),
+                                            )
+                                    )
+                                }
+                                Text("많음",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                            }
+                        }
+                    }
+                }
+
                 if (!report.ready) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeatmapGrid(data: List<Pair<String, Int>>) {
+    val maxCount = data.maxOf { it.second }.coerceAtLeast(1)
+    // 5 rows x 6 columns = 30 cells
+    val rows = 5
+    val cols = 6
+    val cellSize = 28.dp
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        repeat(rows) { r ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                repeat(cols) { c ->
+                    val idx = r * cols + c
+                    if (idx < data.size) {
+                        val (_, count) = data[idx]
+                        val intensity = if (count == 0) 0.08f
+                                        else 0.2f + 0.8f * (count.toFloat() / maxCount)
+                        Box(
+                            modifier = Modifier
+                                .size(cellSize)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = intensity),
+                                    RoundedCornerShape(4.dp),
+                                )
+                        )
+                    } else {
+                        Box(modifier = Modifier.size(cellSize))
+                    }
                 }
             }
         }

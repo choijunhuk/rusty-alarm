@@ -85,42 +85,12 @@ fun AlarmListScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onOpenSleep) {
-                            Icon(
-                                Icons.Default.Bedtime,
-                                contentDescription = "수면 사운드",
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                        IconButton(onClick = onOpenPet) {
-                            Icon(
-                                Icons.Default.Pets,
-                                contentDescription = "펫",
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                        IconButton(onClick = onOpenReport) {
-                            Icon(
-                                Icons.Default.Assessment,
-                                contentDescription = "리포트",
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
                         IconButton(onClick = onOpenStats) {
                             Icon(
                                 Icons.Default.Insights,
-                                contentDescription = "통계",
+                                contentDescription = "전체 통계",
                                 tint = MaterialTheme.colorScheme.secondary,
                             )
-                        }
-                        if (onOpenSettings != null) {
-                            IconButton(onClick = onOpenSettings) {
-                                Icon(
-                                    Icons.Default.Settings,
-                                    contentDescription = "설정",
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                )
-                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),

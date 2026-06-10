@@ -70,7 +70,10 @@ fun AlarmRingScreen(
     var mathError   by remember { mutableStateOf(false) }
     var typedText   by remember { mutableStateOf("") }
     var shakeCount  by remember { mutableIntStateOf(0) }
+    var stepCount   by remember { mutableIntStateOf(0) }
     var solved      by remember { mutableStateOf(challengeType == ChallengeType.NONE) }
+
+    val stepTarget = 20
 
     // ── shake sensor (3 difficulty levels) ──────────
     val isShakeChallenge = challengeType == ChallengeType.SHAKE_EASY ||
@@ -104,6 +107,31 @@ fun AlarmRingScreen(
                 override fun onAccuracyChanged(s: Sensor, a: Int) {}
             }
             sm.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_UI)
+            onDispose { sm.unregisterListener(listener) }
+        }
+    }
+
+    // ── step counter sensor ──────────────────────────
+    if (challengeType == ChallengeType.STEP_COUNT) {
+        val ctx = LocalContext.current
+        DisposableEffect(Unit) {
+            val sm = ctx.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+            val sensor = sm.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+            var initial: Float? = null
+            val listener = object : SensorEventListener {
+                override fun onSensorChanged(ev: SensorEvent) {
+                    val total = ev.values.getOrNull(0) ?: return
+                    if (initial == null) initial = total
+                    val taken = (total - (initial ?: total)).toInt().coerceAtLeast(0)
+                    stepCount = taken
+                    if (stepCount >= stepTarget) {
+                        solved = true
+                        onDismiss()
+                    }
+                }
+                override fun onAccuracyChanged(s: Sensor, a: Int) {}
+            }
+            if (sensor != null) sm.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_NORMAL)
             onDispose { sm.unregisterListener(listener) }
         }
     }
@@ -236,6 +264,26 @@ fun AlarmRingScreen(
                         label = { Text("입력하세요") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
+            // ── step counter challenge ────────────────
+            if (challengeType == ChallengeType.STEP_COUNT && !solved) {
+                ChallengeCard {
+                    Text("$stepTarget 걸음 걸으면 알람이 꺼져요!",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        textAlign = TextAlign.Center)
+                    Text(
+                        "$stepCount / $stepTarget",
+                        fontSize = 48.sp, fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    LinearProgressIndicator(
+                        progress = { (stepCount.toFloat() / stepTarget).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(8.dp),
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
