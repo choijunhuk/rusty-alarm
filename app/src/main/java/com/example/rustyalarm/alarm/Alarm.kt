@@ -23,6 +23,8 @@ data class Alarm(
     val challengeType: ChallengeType = ChallengeType.NONE,
     val isSmartAlarm: Boolean = false,
     val smartWindowMinutes: Int = 30,
+    val volumeRampSeconds: Int = 0,
+    val groupTag: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 )

@@ -151,11 +151,12 @@ fun AlarmEditScreen(
                 },
             )
 
-            if (alarm.specificDate != null) {
+            val specificDateMillis = alarm.specificDate
+            if (specificDateMillis != null) {
                 // Show selected date + edit button
-                val dateLabel = remember(alarm.specificDate) {
+                val dateLabel = remember(specificDateMillis) {
                     SimpleDateFormat("yyyy년 M월 d일 (E)", Locale.KOREAN)
-                        .format(Date(alarm.specificDate))
+                        .format(Date(specificDateMillis))
                 }
                 OutlinedButton(
                     onClick = { showDatePicker = true },
@@ -192,6 +193,33 @@ fun AlarmEditScreen(
             }
 
             ToggleRow("진동", alarm.vibrate, vm::updateVibrate)
+
+            if (alarm.soundEnabled) {
+                Text(
+                    text = if (alarm.volumeRampSeconds == 0) "볼륨 페이드인 — 끔"
+                           else "볼륨 페이드인 ${alarm.volumeRampSeconds}초",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                )
+                Slider(
+                    value = alarm.volumeRampSeconds.toFloat(),
+                    onValueChange = { vm.updateVolumeRamp(it.toInt()) },
+                    valueRange = 0f..30f,
+                    steps = 5,
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+
+            // ── Group tag ──────────────────────────────
+            SectionLabel("그룹 (선택)")
+            OutlinedTextField(
+                value = alarm.groupTag ?: "",
+                onValueChange = { vm.updateGroupTag(it) },
+                label = { Text("예: 평일 출근, 주말") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
 

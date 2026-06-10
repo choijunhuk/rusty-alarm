@@ -32,9 +32,11 @@ class AlarmReceiver : BroadcastReceiver() {
         val ringtoneUri     = intent.getStringExtra(EXTRA_RINGTONE_URI)
         val challengeType   = intent.getStringExtra(EXTRA_CHALLENGE_TYPE) ?: ChallengeType.NONE.name
         val repeatDays      = intent.getIntArrayExtra(EXTRA_REPEAT_DAYS) ?: intArrayOf()
+        val volumeRamp      = intent.getIntExtra(EXTRA_VOLUME_RAMP_SECONDS, 0)
 
         AlarmNotificationManager.showAlarmNotification(
             context, alarmId, title, hour, minute, soundEnabled, ringtoneUri, challengeType,
+            volumeRamp,
         )
 
         if (vibrate) vibrate(context)
@@ -174,6 +176,7 @@ class AlarmReceiver : BroadcastReceiver() {
         const val EXTRA_RINGTONE_URI   = "ringtone_uri"
         const val EXTRA_CHALLENGE_TYPE = "challenge_type"
         const val EXTRA_REPEAT_DAYS    = "repeat_days"
+        const val EXTRA_VOLUME_RAMP_SECONDS = "volume_ramp_seconds"
 
         const val SNOOZE_ID_OFFSET     = 100_000L
         private const val PREFS        = "rusty_alarm_stats"

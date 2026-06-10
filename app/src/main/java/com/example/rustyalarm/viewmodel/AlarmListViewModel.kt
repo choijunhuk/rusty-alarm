@@ -18,16 +18,22 @@ class AlarmListViewModel(private val repository: AlarmRepository) : ViewModel() 
         initialValue = emptyList(),
     )
 
+    val groups: StateFlow<List<String>> = repository.groups.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList(),
+    )
+
     fun toggleAlarm(alarm: Alarm, enabled: Boolean) {
-        viewModelScope.launch {
-            repository.setEnabled(alarm.id, enabled)
-        }
+        viewModelScope.launch { repository.setEnabled(alarm.id, enabled) }
     }
 
     fun deleteAlarm(alarm: Alarm) {
-        viewModelScope.launch {
-            repository.delete(alarm)
-        }
+        viewModelScope.launch { repository.delete(alarm) }
+    }
+
+    fun toggleGroup(tag: String, enabled: Boolean) {
+        viewModelScope.launch { repository.setGroupEnabled(tag, enabled) }
     }
 
     class Factory(private val repository: AlarmRepository) : ViewModelProvider.Factory {

@@ -15,9 +15,10 @@ class AlarmScheduler(private val context: Context) {
     fun schedule(alarm: Alarm) {
         if (!alarm.enabled) return
 
-        val triggerAtMillis = if (alarm.specificDate != null) {
+        val specificDate = alarm.specificDate
+        val triggerAtMillis = if (specificDate != null) {
             Calendar.getInstance().apply {
-                timeInMillis = alarm.specificDate
+                timeInMillis = specificDate
                 set(Calendar.HOUR_OF_DAY, alarm.hour)
                 set(Calendar.MINUTE, alarm.minute)
                 set(Calendar.SECOND, 0)
@@ -102,6 +103,7 @@ class AlarmScheduler(private val context: Context) {
             putExtra(AlarmReceiver.EXTRA_RINGTONE_URI, alarm.ringtoneUri)
             putExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE, alarm.challengeType.name)
             putExtra(AlarmReceiver.EXTRA_REPEAT_DAYS, alarm.repeatDays.toIntArray())
+            putExtra(AlarmReceiver.EXTRA_VOLUME_RAMP_SECONDS, alarm.volumeRampSeconds)
         }
 
     private fun buildSmartStartIntent(alarm: Alarm, deadlineMillis: Long): PendingIntent {

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.rustyalarm.alarm.AlarmDatabase
 import com.example.rustyalarm.alarm.AlarmEvent
 import com.example.rustyalarm.alarm.AlarmEventType
@@ -25,16 +26,25 @@ import com.example.rustyalarm.alarm.AlarmReceiver
 import com.example.rustyalarm.alarm.AlarmSchedulerSnooze
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.ChallengeType
+import com.example.rustyalarm.prefs.ThemeMode
+import com.example.rustyalarm.prefs.ThemePreferences
 import com.example.rustyalarm.ui.screens.AlarmRingScreen
 import com.example.rustyalarm.ui.theme.RustyAlarmTheme
+import androidx.compose.runtime.getValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class AlarmRingActivity : ComponentActivity() {
 
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
+    private val rampScope = MainScope()
+    private var rampJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,12 +68,13 @@ class AlarmRingActivity : ComponentActivity() {
         val vibrate       = intent.getBooleanExtra(AlarmReceiver.EXTRA_VIBRATE, true)
         val soundEnabled  = intent.getBooleanExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, true)
         val ringtoneUri   = intent.getStringExtra(AlarmReceiver.EXTRA_RINGTONE_URI)
+        val volumeRamp    = intent.getIntExtra(AlarmReceiver.EXTRA_VOLUME_RAMP_SECONDS, 0)
         val challengeName = intent.getStringExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE)
             ?: ChallengeType.NONE.name
         val challengeType = runCatching { ChallengeType.valueOf(challengeName) }
             .getOrDefault(ChallengeType.NONE)
 
-        if (soundEnabled) startAlarmSound(ringtoneUri)
+        if (soundEnabled) startAlarmSound(ringtoneUri, volumeRamp)
         if (vibrate)      startVibration()
 
         val firedAt = System.currentTimeMillis()
@@ -130,7 +141,7 @@ class AlarmRingActivity : ComponentActivity() {
         }
     }
 
-    private fun startAlarmSound(ringtoneUriStr: String?) {
+    private fun startAlarmSound(ringtoneUriStr: String?, rampSeconds: Int) {
         val uri = ringtoneUriStr?.let { runCatching { Uri.parse(it) }.getOrNull() }
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
@@ -145,10 +156,26 @@ class AlarmRingActivity : ComponentActivity() {
                         .build()
                 )
                 isLooping = true
+                if (rampSeconds > 0) setVolume(0f, 0f)
                 prepareAsync()
-                setOnPreparedListener { start() }
+                setOnPreparedListener {
+                    start()
+                    if (rampSeconds > 0) startVolumeRamp(rampSeconds)
+                }
             }
         } catch (_: Exception) {}
+    }
+
+    private fun startVolumeRamp(rampSeconds: Int) {
+        rampJob?.cancel()
+        rampJob = rampScope.launch {
+            val steps = rampSeconds * 4   // 4 steps per second
+            for (i in 1..steps) {
+                val v = i / steps.toFloat()
+                runCatching { mediaPlayer?.setVolume(v, v) }
+                delay(250)
+            }
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -167,13 +194,19 @@ class AlarmRingActivity : ComponentActivity() {
     }
 
     private fun stopSounds() {
+        rampJob?.cancel()
+        rampJob = null
         mediaPlayer?.runCatching { stop(); release() }
         mediaPlayer = null
         vibrator?.cancel()
         vibrator = null
     }
 
-    override fun onDestroy() { super.onDestroy(); stopSounds() }
+    override fun onDestroy() {
+        super.onDestroy()
+        stopSounds()
+        rampScope.cancel()
+    }
 
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent) }
 }

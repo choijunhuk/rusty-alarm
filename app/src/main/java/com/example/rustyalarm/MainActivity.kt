@@ -20,6 +20,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.rustyalarm.auth.AuthRepository
 import com.example.rustyalarm.auth.AuthViewModel
+import com.example.rustyalarm.prefs.ThemeMode
+import com.example.rustyalarm.prefs.ThemePreferences
 import com.example.rustyalarm.ui.navigation.AppNavigation
 import com.example.rustyalarm.ui.screens.LockScreen
 import com.example.rustyalarm.ui.screens.PinSetupScreen
@@ -41,9 +43,12 @@ class MainActivity : FragmentActivity() {
         val eventDao   = app.database.alarmEventDao()
         val authRepo   = AuthRepository(this)
         val authVm     = ViewModelProvider(this, AuthViewModel.Factory(authRepo))[AuthViewModel::class.java]
+        authVmRef = authVm
+        val themePrefs = ThemePreferences(applicationContext)
 
         setContent {
-            RustyAlarmTheme {
+            val themeMode by themePrefs.mode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
+            RustyAlarmTheme(mode = themeMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
@@ -74,6 +79,7 @@ class MainActivity : FragmentActivity() {
                             repository = repository,
                             eventDao = eventDao,
                             authVm = authVm,
+                            themePrefs = themePrefs,
                             canUseBiometric = canBio,
                             onChangePin = {
                                 // resetPin already flipped hasPin=false, navigation will surface PinSetupScreen automatically
@@ -85,11 +91,15 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    private var authVmRef: AuthViewModel? = null
+
     private fun canUseBiometric(): Boolean {
         val mgr = BiometricManager.from(this)
-        val auth = BiometricManager.Authenticators.BIOMETRIC_WEAK or
-            BiometricManager.Authenticators.DEVICE_CREDENTIAL
-        return mgr.canAuthenticate(auth) == BiometricManager.BIOMETRIC_SUCCESS
+        // Prefer STRONG. Fall back to STRONG+CREDENTIAL only on Android 11+ where
+        // setAllowedAuthenticators(STRONG|CREDENTIAL) is supported.
+        val strongOnly = mgr.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
+            BiometricManager.BIOMETRIC_SUCCESS
+        return strongOnly
     }
 
     private fun promptBiometric(authVm: AuthViewModel) {
@@ -102,19 +112,18 @@ class MainActivity : FragmentActivity() {
         val prompt = BiometricPrompt(this, executor, callback)
         val info = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Rusty Alarm 잠금 해제")
-            .setSubtitle("지문 또는 화면 잠금으로 인증하세요")
-            .setAllowedAuthenticators(
-                BiometricManager.Authenticators.BIOMETRIC_WEAK or
-                    BiometricManager.Authenticators.DEVICE_CREDENTIAL,
-            )
+            .setSubtitle("지문으로 인증하세요")
+            .setNegativeButtonText("PIN 사용")
+            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
             .build()
         prompt.authenticate(info)
     }
 
-    override fun onResume() {
-        super.onResume()
-        // Re-lock when returning from background (security best practice)
-        // Comment out the line below if you prefer to stay unlocked across pauses
+    override fun onStop() {
+        super.onStop()
+        // Re-lock when leaving the foreground so an attacker with physical access
+        // can't simply re-open the task. Matches the security-review guidance.
+        authVmRef?.lock()
     }
 
     private fun requestNotificationPermissionIfNeeded() {

@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.example.rustyalarm.alarm.AlarmEventDao
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.auth.AuthViewModel
+import com.example.rustyalarm.prefs.ThemePreferences
 import com.example.rustyalarm.ui.screens.AlarmEditScreen
 import com.example.rustyalarm.ui.screens.AlarmListScreen
 import com.example.rustyalarm.ui.screens.SettingsScreen
@@ -28,6 +29,7 @@ fun AppNavigation(
     repository: AlarmRepository,
     eventDao: AlarmEventDao,
     authVm: AuthViewModel? = null,
+    themePrefs: ThemePreferences? = null,
     canUseBiometric: Boolean = false,
     onChangePin: () -> Unit = {},
 ) {
@@ -40,7 +42,7 @@ fun AppNavigation(
                 onAddAlarm    = { navController.navigate(Screen.Edit.route()) },
                 onEditAlarm   = { alarm -> navController.navigate(Screen.Edit.route(alarm.id)) },
                 onOpenStats   = { navController.navigate(Screen.Stats.route) },
-                onOpenSettings = if (authVm != null) {
+                onOpenSettings = if (authVm != null && themePrefs != null) {
                     { navController.navigate(Screen.Settings.route) }
                 } else null,
             )
@@ -49,10 +51,12 @@ fun AppNavigation(
             StatsScreen(eventDao = eventDao, onBack = { navController.popBackStack() })
         }
         composable(Screen.Settings.route) {
-            if (authVm != null) {
+            if (authVm != null && themePrefs != null) {
                 SettingsScreen(
                     vm = authVm,
                     canUseBiometric = canUseBiometric,
+                    themePrefs = themePrefs,
+                    repository = repository,
                     onBack = { navController.popBackStack() },
                     onChangePin = onChangePin,
                 )

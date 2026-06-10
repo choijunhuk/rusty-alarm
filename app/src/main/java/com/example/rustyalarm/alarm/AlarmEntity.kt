@@ -19,6 +19,8 @@ data class AlarmEntity(
     val challengeType: String = ChallengeType.NONE.name,
     val isSmartAlarm: Boolean = false,
     val smartWindowMinutes: Int = 30,
+    val volumeRampSeconds: Int = 0,
+    val groupTag: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 ) {
@@ -38,6 +40,8 @@ data class AlarmEntity(
             .getOrDefault(ChallengeType.NONE),
         isSmartAlarm = isSmartAlarm,
         smartWindowMinutes = smartWindowMinutes,
+        volumeRampSeconds = volumeRampSeconds,
+        groupTag = groupTag,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
@@ -57,6 +61,8 @@ data class AlarmEntity(
             challengeType = alarm.challengeType.name,
             isSmartAlarm = alarm.isSmartAlarm,
             smartWindowMinutes = alarm.smartWindowMinutes,
+            volumeRampSeconds = alarm.volumeRampSeconds,
+            groupTag = alarm.groupTag,
             createdAt = alarm.createdAt,
             updatedAt = alarm.updatedAt,
         )

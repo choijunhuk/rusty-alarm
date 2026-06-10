@@ -35,6 +35,7 @@ object AlarmNotificationManager {
         soundEnabled: Boolean = true,
         ringtoneUri: String? = null,
         challengeType: String = ChallengeType.NONE.name,
+        volumeRampSeconds: Int = 0,
     ) {
         val ringIntent = Intent(context, AlarmRingActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -45,6 +46,7 @@ object AlarmNotificationManager {
             putExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, soundEnabled)
             putExtra(AlarmReceiver.EXTRA_RINGTONE_URI, ringtoneUri)
             putExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE, challengeType)
+            putExtra(AlarmReceiver.EXTRA_VOLUME_RAMP_SECONDS, volumeRampSeconds)
         }
         val contentPi = PendingIntent.getActivity(
             context, alarmId.toInt(), ringIntent,

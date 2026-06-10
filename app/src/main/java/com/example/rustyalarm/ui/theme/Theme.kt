@@ -1,9 +1,12 @@
 package com.example.rustyalarm.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import com.example.rustyalarm.prefs.ThemeMode
 
 val Purple80   = Color(0xFF7C4DFF)
 val Cyan80     = Color(0xFF00E5FF)
@@ -31,10 +34,37 @@ private val DarkColors = darkColorScheme(
     outline            = Color(0xFF44446A),
 )
 
+private val LightColors = lightColorScheme(
+    primary            = Color(0xFF5E2DD9),
+    onPrimary          = Color.White,
+    primaryContainer   = Color(0xFFEDE2FF),
+    onPrimaryContainer = Color(0xFF2A0080),
+    secondary          = Color(0xFF008CA0),
+    onSecondary        = Color.White,
+    secondaryContainer = Color(0xFFD4F5FB),
+    background         = Color(0xFFFAFAFC),
+    onBackground       = Color(0xFF111122),
+    surface            = Color.White,
+    onSurface          = Color(0xFF111122),
+    surfaceVariant     = Color(0xFFEEEEF6),
+    onSurfaceVariant   = Color(0xFF55556B),
+    error              = Color(0xFFD32F2F),
+    onError            = Color.White,
+    outline            = Color(0xFFB8B8C8),
+)
+
 @Composable
-fun RustyAlarmTheme(content: @Composable () -> Unit) {
+fun RustyAlarmTheme(
+    mode: ThemeMode = ThemeMode.SYSTEM,
+    content: @Composable () -> Unit,
+) {
+    val useDark = when (mode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.DARK   -> true
+        ThemeMode.LIGHT  -> false
+    }
     MaterialTheme(
-        colorScheme = DarkColors,
+        colorScheme = if (useDark) DarkColors else LightColors,
         content = content,
     )
 }

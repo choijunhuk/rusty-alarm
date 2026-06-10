@@ -15,8 +15,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.rustyalarm.auth.AuthViewModel
+import com.example.rustyalarm.auth.UnlockResult
 import com.example.rustyalarm.ui.components.PinKeypad
+import kotlinx.coroutines.delay
 
 private const val PIN_LENGTH = 4
 
@@ -28,6 +31,19 @@ fun LockScreen(
 ) {
     var pin by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
+    val throttle by vm.throttleSeconds.collectAsStateWithLifecycle()
+
+    // Tick down throttle counter
+    LaunchedEffect(throttle) {
+        if (throttle > 0) {
+            while (vm.throttleSeconds.value > 0) {
+                delay(1000)
+                vm.refreshThrottle()
+            }
+        }
+    }
+
+    val isThrottled = throttle > 0
 
     Box(
         modifier = Modifier
@@ -55,9 +71,13 @@ fun LockScreen(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                if (error) "PIN이 일치하지 않아요" else "PIN을 입력하세요",
+                when {
+                    isThrottled -> "잠시 후 다시 시도하세요 — $throttle 초"
+                    error -> "PIN이 일치하지 않아요"
+                    else -> "PIN을 입력하세요"
+                },
                 fontSize = 14.sp,
-                color = if (error) MaterialTheme.colorScheme.error
+                color = if (error || isThrottled) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             )
 
@@ -67,19 +87,21 @@ fun LockScreen(
                 pinLength = pin.length,
                 maxLength = PIN_LENGTH,
                 onDigit = { d ->
+                    if (isThrottled) return@PinKeypad
                     error = false
                     if (pin.length < PIN_LENGTH) {
                         pin += d.toString()
                         if (pin.length == PIN_LENGTH) {
-                            if (!vm.tryUnlock(pin)) {
-                                error = true
-                                pin = ""
+                            when (val r = vm.tryUnlock(pin)) {
+                                is UnlockResult.Success      -> Unit
+                                is UnlockResult.Failed       -> { error = true; pin = "" }
+                                is UnlockResult.Throttled    -> { pin = "" }
                             }
                         }
                     }
                 },
                 onBackspace = { if (pin.isNotEmpty()) pin = pin.dropLast(1) },
-                onBiometric = if (biometricEnabled) onBiometric else null,
+                onBiometric = if (biometricEnabled && !isThrottled) onBiometric else null,
             )
             Spacer(Modifier.height(48.dp))
         }

@@ -1,14 +1,18 @@
 package com.example.rustyalarm.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ToggleOff
+import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +43,7 @@ fun AlarmListScreen(
 ) {
     val vm: AlarmListViewModel = viewModel(factory = AlarmListViewModel.Factory(repository))
     val alarms by vm.alarms.collectAsStateWithLifecycle()
+    val groups by vm.groups.collectAsStateWithLifecycle()
 
     // Live current time for header
     var currentTime by remember { mutableStateOf(currentTimeString()) }
@@ -134,6 +139,34 @@ fun AlarmListScreen(
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
                         )
                         Spacer(Modifier.height(8.dp))
+                    }
+                }
+
+                if (groups.isNotEmpty()) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            groups.forEach { tag ->
+                                val anyEnabled = alarms.any { it.groupTag == tag && it.enabled }
+                                AssistChip(
+                                    onClick = { vm.toggleGroup(tag, !anyEnabled) },
+                                    label = { Text(tag) },
+                                    leadingIcon = {
+                                        Icon(
+                                            if (anyEnabled) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
+                                            contentDescription = null,
+                                            tint = if (anyEnabled) MaterialTheme.colorScheme.primary
+                                                   else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                        )
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
 

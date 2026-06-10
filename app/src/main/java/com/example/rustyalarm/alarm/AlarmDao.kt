@@ -28,4 +28,13 @@ interface AlarmDao {
 
     @Query("UPDATE alarms SET enabled = :enabled, updatedAt = :updatedAt WHERE id = :id")
     suspend fun setEnabled(id: Long, enabled: Boolean, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM alarms WHERE groupTag = :tag")
+    suspend fun getByGroup(tag: String): List<AlarmEntity>
+
+    @Query("SELECT DISTINCT groupTag FROM alarms WHERE groupTag IS NOT NULL AND groupTag != ''")
+    fun distinctGroupsFlow(): Flow<List<String>>
+
+    @Query("UPDATE alarms SET enabled = :enabled, updatedAt = :updatedAt WHERE groupTag = :tag")
+    suspend fun setGroupEnabled(tag: String, enabled: Boolean, updatedAt: Long = System.currentTimeMillis())
 }
