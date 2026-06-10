@@ -20,6 +20,7 @@ class RustyAlarmApplication : Application() {
             dao = database.alarmDao(),
             eventDao = database.alarmEventDao(),
             scheduler = AlarmScheduler(this),
+            appContext = applicationContext,
         )
     }
 

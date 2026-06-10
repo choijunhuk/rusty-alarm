@@ -18,6 +18,7 @@ import com.example.rustyalarm.ui.screens.AlarmListScreen
 import com.example.rustyalarm.ui.screens.PetScreen
 import com.example.rustyalarm.ui.screens.ReportScreen
 import com.example.rustyalarm.ui.screens.SettingsScreen
+import com.example.rustyalarm.ui.screens.SleepSoundsScreen
 import com.example.rustyalarm.ui.screens.StatsScreen
 
 sealed class Screen(val route: String) {
@@ -25,6 +26,7 @@ sealed class Screen(val route: String) {
     object Stats    : Screen("stats")
     object Report   : Screen("report")
     object Pet      : Screen("pet")
+    object Sleep    : Screen("sleep")
     object Settings : Screen("settings")
     object Edit     : Screen("alarm_edit/{alarmId}") {
         fun route(alarmId: Long = -1L) = "alarm_edit/$alarmId"
@@ -54,6 +56,7 @@ fun AppNavigation(
                 onOpenStats   = { navController.navigate(Screen.Stats.route) },
                 onOpenReport  = { navController.navigate(Screen.Report.route) },
                 onOpenPet     = { navController.navigate(Screen.Pet.route) },
+                onOpenSleep   = { navController.navigate(Screen.Sleep.route) },
                 onOpenSettings = { navController.navigate(Screen.Settings.route) },
             )
         }
@@ -65,6 +68,9 @@ fun AppNavigation(
         }
         composable(Screen.Pet.route) {
             PetScreen(petDao = petDao, onBack = { navController.popBackStack() })
+        }
+        composable(Screen.Sleep.route) {
+            SleepSoundsScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.Settings.route) {
             SettingsScreen(

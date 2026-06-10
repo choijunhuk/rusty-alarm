@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Settings
@@ -44,6 +45,7 @@ fun AlarmListScreen(
     onOpenStats: () -> Unit = {},
     onOpenReport: () -> Unit = {},
     onOpenPet: () -> Unit = {},
+    onOpenSleep: () -> Unit = {},
     onOpenSettings: (() -> Unit)? = null,
 ) {
     val vm: AlarmListViewModel = viewModel(factory = AlarmListViewModel.Factory(repository))
@@ -82,6 +84,13 @@ fun AlarmListScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = onOpenSleep) {
+                            Icon(
+                                Icons.Default.Bedtime,
+                                contentDescription = "수면 사운드",
+                                tint = MaterialTheme.colorScheme.secondary,
+                            )
+                        }
                         IconButton(onClick = onOpenPet) {
                             Icon(
                                 Icons.Default.Pets,

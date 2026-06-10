@@ -1,0 +1,185 @@
+package com.example.rustyalarm.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.rustyalarm.sleep.NoiseColor
+import com.example.rustyalarm.sleep.NoiseGenerator
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SleepSoundsScreen(onBack: () -> Unit) {
+    val generator = remember { NoiseGenerator() }
+    DisposableEffect(Unit) { onDispose { generator.release() } }
+
+    var selected by remember { mutableStateOf<NoiseColor?>(null) }
+    var playing  by remember { mutableStateOf(false) }
+    var timerMin by remember { mutableStateOf(0) }      // 0 = off
+    var remainingSec by remember { mutableStateOf(0) }
+
+    LaunchedEffect(playing, timerMin) {
+        if (playing && timerMin > 0) {
+            remainingSec = timerMin * 60
+            while (isActive && remainingSec > 0) {
+                delay(1000)
+                remainingSec--
+            }
+            if (playing) {
+                playing = false
+                generator.stop()
+            }
+        } else {
+            remainingSec = 0
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xFF0D0D22), Color(0xFF0A0A1A)))),
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { Text("수면 사운드") },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                )
+            },
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    "사운드 선택",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+
+                NoiseColor.entries.forEach { color ->
+                    SoundRow(
+                        color = color,
+                        selected = selected == color,
+                        onSelect = {
+                            if (selected == color && playing) {
+                                playing = false
+                                generator.stop()
+                            } else {
+                                selected = color
+                                generator.start(color)
+                                playing = true
+                            }
+                        },
+                    )
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+
+                Text(
+                    "타이머",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0 to "끔", 10 to "10분", 30 to "30분", 60 to "60분").forEach { (m, l) ->
+                        FilterChip(
+                            selected = timerMin == m,
+                            onClick = { timerMin = m },
+                            label = { Text(l) },
+                        )
+                    }
+                }
+                if (timerMin > 0 && playing) {
+                    Text(
+                        "남은 시간 — ${"%02d:%02d".format(remainingSec / 60, remainingSec % 60)}",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                if (playing) {
+                    Button(
+                        onClick = {
+                            playing = false
+                            generator.stop()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                    ) {
+                        Icon(Icons.Default.Stop, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("정지")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SoundRow(
+    color: NoiseColor,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
+                             else MaterialTheme.colorScheme.surface,
+        ),
+        shape = RoundedCornerShape(16.dp),
+        onClick = onSelect,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(color.emoji, fontSize = 28.sp)
+            Text(
+                color.label,
+                fontWeight = FontWeight.Medium,
+                color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                if (selected) Icons.Default.Stop else Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                       else MaterialTheme.colorScheme.secondary,
+            )
+        }
+    }
+}

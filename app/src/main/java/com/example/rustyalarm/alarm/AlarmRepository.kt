@@ -1,5 +1,6 @@
 package com.example.rustyalarm.alarm
 
+import android.content.Context
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -10,7 +11,14 @@ class AlarmRepository(
     private val dao: AlarmDao,
     private val eventDao: AlarmEventDao,
     private val scheduler: AlarmScheduler,
+    private val appContext: Context? = null,
 ) {
+    private suspend fun refreshWidget() {
+        val ctx = appContext ?: return
+        runCatching {
+            com.example.rustyalarm.widget.NextAlarmWidget().updateAll(ctx)
+        }
+    }
     val alarms: Flow<List<Alarm>> = dao.getAllFlow().map { list -> list.map { it.toAlarm() } }
     val groups: Flow<List<String>> = dao.distinctGroupsFlow()
 
@@ -26,6 +34,7 @@ class AlarmRepository(
         }
         val saved = alarm.copy(id = savedId)
         if (saved.enabled) scheduler.schedule(saved)
+        refreshWidget()
         return savedId
     }
 
@@ -33,12 +42,14 @@ class AlarmRepository(
         scheduler.cancel(alarm.id)
         eventDao.deleteByAlarmId(alarm.id)
         dao.deleteById(alarm.id)
+        refreshWidget()
     }
 
     suspend fun setEnabled(id: Long, enabled: Boolean) {
         dao.setEnabled(id, enabled)
         val alarm = dao.getById(id)?.toAlarm() ?: return
         if (enabled) scheduler.schedule(alarm) else scheduler.cancel(id)
+        refreshWidget()
     }
 
     /** Toggle every alarm in a named group on/off; reschedules each accordingly. */
@@ -48,6 +59,7 @@ class AlarmRepository(
             val alarm = entity.toAlarm().copy(enabled = enabled)
             if (enabled) scheduler.schedule(alarm) else scheduler.cancel(entity.id)
         }
+        refreshWidget()
     }
 
     suspend fun rescheduleAll() {
