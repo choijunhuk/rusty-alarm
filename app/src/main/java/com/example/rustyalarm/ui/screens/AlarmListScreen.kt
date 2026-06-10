@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +35,7 @@ fun AlarmListScreen(
     onAddAlarm: () -> Unit,
     onEditAlarm: (Alarm) -> Unit,
     onOpenStats: () -> Unit = {},
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     val vm: AlarmListViewModel = viewModel(factory = AlarmListViewModel.Factory(repository))
     val alarms by vm.alarms.collectAsStateWithLifecycle()
@@ -76,6 +78,15 @@ fun AlarmListScreen(
                                 contentDescription = "통계",
                                 tint = MaterialTheme.colorScheme.secondary,
                             )
+                        }
+                        if (onOpenSettings != null) {
+                            IconButton(onClick = onOpenSettings) {
+                                Icon(
+                                    Icons.Default.Settings,
+                                    contentDescription = "설정",
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                )
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
