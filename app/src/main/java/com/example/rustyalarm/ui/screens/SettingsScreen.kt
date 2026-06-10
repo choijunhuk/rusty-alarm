@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.auth.AuthViewModel
+import com.example.rustyalarm.auth.UnlockResult
 import com.example.rustyalarm.prefs.ThemeMode
 import com.example.rustyalarm.prefs.ThemePreferences
 import com.example.rustyalarm.prefs.UserPreferences
@@ -56,9 +57,21 @@ fun SettingsScreen(
     var importMessage by remember { mutableStateOf<String?>(null) }
     var nicknameDialog by remember { mutableStateOf(false) }
     var nicknameDraft by remember { mutableStateOf(userProfile.nickname) }
+    var disableLockDialog by remember { mutableStateOf(false) }
+    var reauthPin by remember { mutableStateOf("") }
+    var reauthError by remember { mutableStateOf(false) }
 
     val hasPin by vm.hasPin.collectAsStateWithLifecycle()
+    val throttleSec by vm.throttleSeconds.collectAsStateWithLifecycle()
     val themeMode by themePrefs.mode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
+
+    // Tick down throttle while the disable dialog is open
+    LaunchedEffect(disableLockDialog, throttleSec) {
+        while (disableLockDialog && vm.throttleSeconds.value > 0) {
+            kotlinx.coroutines.delay(1000)
+            vm.refreshThrottle()
+        }
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -214,12 +227,18 @@ fun SettingsScreen(
                         Switch(
                             checked = userProfile.appLockEnabled,
                             onCheckedChange = { on ->
-                                scope.launch {
-                                    userPrefs.setAppLockEnabled(on)
-                                    if (!on) {
-                                        vm.resetPin()
-                                        biometricOn = false
-                                        vm.setBiometricEnabled(false)
+                                if (!on && hasPin) {
+                                    // Step-up: require current PIN before disabling the lock
+                                    reauthPin = ""
+                                    reauthError = false
+                                    disableLockDialog = true
+                                } else {
+                                    scope.launch {
+                                        userPrefs.setAppLockEnabled(on)
+                                        if (!on) {
+                                            biometricOn = false
+                                            vm.setBiometricEnabled(false)
+                                        }
                                     }
                                 }
                             },
@@ -314,6 +333,84 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+
+    if (disableLockDialog) {
+        val isThrottled = throttleSec > 0
+        val supporting: (@Composable () -> Unit)? = when {
+            isThrottled -> {{ Text("잠시 후 다시 시도 — $throttleSec 초") }}
+            reauthError -> {{ Text("PIN이 일치하지 않아요.") }}
+            else        -> null
+        }
+        AlertDialog(
+            onDismissRequest = {
+                disableLockDialog = false
+                reauthPin = ""
+                reauthError = false
+            },
+            title = { Text("앱 잠금 해제") },
+            text = {
+                Column {
+                    Text("앱 잠금을 끄려면 현재 PIN을 입력하세요.")
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = reauthPin,
+                        onValueChange = {
+                            if (it.length <= 8 && it.all { c -> c.isDigit() }) {
+                                reauthPin = it
+                                reauthError = false
+                            }
+                        },
+                        label = { Text("현재 PIN") },
+                        isError = reauthError || isThrottled,
+                        supportingText = supporting,
+                        singleLine = true,
+                        enabled = !isThrottled,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !isThrottled,
+                    onClick = {
+                        when (vm.verifyForStepUp(reauthPin)) {
+                            is UnlockResult.Success -> {
+                                scope.launch {
+                                    userPrefs.setAppLockEnabled(false)
+                                    vm.resetPin()
+                                    biometricOn = false
+                                    vm.setBiometricEnabled(false)
+                                }
+                                disableLockDialog = false
+                                reauthPin = ""
+                                reauthError = false
+                            }
+                            is UnlockResult.Failed -> {
+                                reauthError = true
+                                reauthPin = ""
+                            }
+                            is UnlockResult.Throttled -> {
+                                reauthPin = ""
+                            }
+                        }
+                    },
+                ) {
+                    Text("해제", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    disableLockDialog = false
+                    reauthPin = ""
+                    reauthError = false
+                }) { Text("취소") }
+            },
+        )
     }
 
     if (nicknameDialog) {

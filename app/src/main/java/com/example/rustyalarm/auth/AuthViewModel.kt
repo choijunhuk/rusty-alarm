@@ -50,6 +50,23 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     /** Returns true if [pin] matches the stored hash; does NOT flip unlocked. */
     fun verifyCurrentPin(pin: String): Boolean = repository.verifyPin(pin)
 
+    /**
+     * Throttle-aware step-up verification. Mirrors [tryUnlock] semantics but
+     * does NOT unlock the app on success — only confirms the PIN. Use this
+     * for sensitive settings changes (PIN reset, disabling app lock).
+     */
+    fun verifyForStepUp(pin: String): UnlockResult {
+        val wait = repository.throttleSecondsRemaining()
+        if (wait > 0) {
+            _throttleSeconds.value = wait
+            return UnlockResult.Throttled(wait)
+        }
+        val ok = repository.verifyPin(pin)
+        _throttleSeconds.value = repository.throttleSecondsRemaining()
+        return if (ok) UnlockResult.Success
+        else UnlockResult.Failed(repository.failureCount())
+    }
+
     fun refreshThrottle() {
         _throttleSeconds.value = repository.throttleSecondsRemaining()
     }
