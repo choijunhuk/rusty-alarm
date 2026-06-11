@@ -22,6 +22,26 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 
     private fun handleAlarmFired(context: Context, intent: Intent) {
+        // Vacation mode — suppress alarm if user is on vacation
+        val vacationUntil = com.example.rustyalarm.prefs.UserPreferences.vacationUntilSync(context)
+        if (vacationUntil > System.currentTimeMillis()) {
+            // Still reschedule the alarm for the next occurrence; just don't ring this one
+            val pr = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
+                    val repeatDays = intent.getIntArrayExtra(EXTRA_REPEAT_DAYS) ?: intArrayOf()
+                    if (repeatDays.isNotEmpty()) {
+                        val db = AlarmDatabase.getDatabase(context)
+                        db.alarmDao().getById(alarmId)?.let {
+                            if (it.enabled) AlarmScheduler(context).schedule(it.toAlarm())
+                        }
+                    }
+                } finally { pr.finish() }
+            }
+            return
+        }
+
         val pendingResult   = goAsync()
         val alarmId         = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
         val title           = intent.getStringExtra(EXTRA_ALARM_TITLE) ?: "알람"

@@ -293,6 +293,44 @@ fun SettingsScreen(
                     }
                 }
 
+                // ── Vacation ─────────────────────────
+                SectionTitle("휴가 모드")
+                SettingsCard {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        val vac = userProfile.vacationUntil
+                        val active = vac > System.currentTimeMillis()
+                        if (active) {
+                            val daysLeft = ((vac - System.currentTimeMillis()) / 86_400_000L) + 1
+                            Text(
+                                "🏖 휴가 중 — 알람 ${daysLeft}일 정지",
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        } else {
+                            Text(
+                                "알람을 며칠 통째로 꺼두기",
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(0 to "끄기", 1 to "1일", 3 to "3일", 7 to "7일").forEach { (days, label) ->
+                                OutlinedButton(
+                                    onClick = {
+                                        scope.launch {
+                                            val until = if (days == 0) 0L
+                                                else System.currentTimeMillis() + days * 86_400_000L
+                                            userPrefs.setVacationUntil(until)
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                ) { Text(label) }
+                            }
+                        }
+                    }
+                }
+
                 // ── Permissions + Test ───────────────
                 SectionTitle("알람 신뢰도")
                 var permTick by remember { mutableStateOf(0) }
@@ -348,6 +386,27 @@ fun SettingsScreen(
                                 },
                                 modifier = Modifier.weight(1f),
                             ) { Text("5초 후 테스트") }
+                        }
+                    }
+                }
+
+                // ── OEM guide ─────────────────────────
+                val brand = remember { android.os.Build.MANUFACTURER.lowercase() }
+                val oemTip = remember(brand) { oemTipFor(brand) }
+                if (oemTip != null) {
+                    SettingsCard {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                "📱 ${brand.replaceFirstChar { it.uppercase() }} 사용자 안내",
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.secondary,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                oemTip,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                            )
                         }
                     }
                 }
@@ -500,6 +559,21 @@ fun SettingsScreen(
             },
         )
     }
+}
+
+@Composable
+private fun oemTipFor(brand: String): String? = when {
+    "xiaomi" in brand || "redmi" in brand || "poco" in brand ->
+        "MIUI: 설정 → 앱 → Rusty Alarm → 권한 → '자동 시작 허용', '다른 앱 위 표시 허용', '백그라운드 활동 제한 없음'을 모두 ON 하세요."
+    "samsung" in brand ->
+        "Samsung: 설정 → 디바이스 케어 → 배터리 → 백그라운드 사용 제한 → 절전되지 않는 앱에 Rusty Alarm 추가."
+    "huawei" in brand || "honor" in brand ->
+        "Huawei/Honor: 설정 → 앱 → 시작 → Rusty Alarm → 수동 관리, 자동 시작/2차 시작/백그라운드 활동 모두 ON."
+    "oppo" in brand || "realme" in brand || "oneplus" in brand ->
+        "ColorOS/OxygenOS: 설정 → 배터리 → 백그라운드 앱 관리 → Rusty Alarm을 '제한 없음'으로 설정."
+    "vivo" in brand ->
+        "Vivo: i-Manager → 앱 관리 → Autostart 허용, 그리고 '높은 백그라운드 전원 사용 허용' ON."
+    else -> null
 }
 
 @Composable
