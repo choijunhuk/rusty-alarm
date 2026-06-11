@@ -28,7 +28,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmRepository
+import com.example.rustyalarm.alarm.AlarmScheduler
+import com.example.rustyalarm.alarm.Permissions
+import com.example.rustyalarm.alarm.AlarmSchedulerSnooze
 import com.example.rustyalarm.auth.AuthViewModel
 import com.example.rustyalarm.auth.UnlockResult
 import com.example.rustyalarm.prefs.ThemeMode
@@ -289,6 +293,65 @@ fun SettingsScreen(
                     }
                 }
 
+                // ── Permissions + Test ───────────────
+                SectionTitle("알람 신뢰도")
+                var permTick by remember { mutableStateOf(0) }
+                val perms = remember(permTick) { Permissions.status(context) }
+                SettingsCard {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        PermissionRow(
+                            label = "알림 권한",
+                            ok = perms.notifications,
+                            action = {
+                                context.startActivity(Permissions.appNotificationSettings(context))
+                            },
+                        )
+                        PermissionRow(
+                            label = "정확한 알람 (Android 12+)",
+                            ok = perms.exactAlarm,
+                            action = {
+                                Permissions.exactAlarmSettings(context)?.let { context.startActivity(it) }
+                            },
+                        )
+                        PermissionRow(
+                            label = "배터리 최적화 무시",
+                            ok = perms.ignoringBatteryOpts,
+                            action = {
+                                context.startActivity(Permissions.batteryOptimizationSettings(context))
+                            },
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = { permTick++ },
+                                modifier = Modifier.weight(1f),
+                            ) { Text("새로고침") }
+                            OutlinedButton(
+                                onClick = {
+                                    scope.launch {
+                                        val testAt = System.currentTimeMillis() + 5_000L
+                                        AlarmSchedulerSnooze(context).scheduleAt(
+                                            Alarm(
+                                                id = 999_999L,
+                                                title = "테스트 알람",
+                                                hour = 0, minute = 0,
+                                                soundEnabled = true,
+                                                vibrate = true,
+                                            ),
+                                            testAt,
+                                        )
+                                        android.widget.Toast.makeText(
+                                            context, "5초 후 알람이 울려요",
+                                            android.widget.Toast.LENGTH_SHORT,
+                                        ).show()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) { Text("5초 후 테스트") }
+                        }
+                    }
+                }
+
                 // ── Backup ───────────────────────────
                 SectionTitle("백업")
                 SettingsCard {
@@ -436,6 +499,29 @@ fun SettingsScreen(
                 TextButton(onClick = { nicknameDialog = false }) { Text("취소") }
             },
         )
+    }
+}
+
+@Composable
+private fun PermissionRow(label: String, ok: Boolean, action: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(if (ok) "✅" else "⚠️", modifier = Modifier.padding(end = 8.dp))
+            Text(label, color = MaterialTheme.colorScheme.onSurface)
+        }
+        if (!ok) {
+            TextButton(onClick = action) { Text("열기") }
+        } else {
+            Text(
+                "OK",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
     }
 }
 
