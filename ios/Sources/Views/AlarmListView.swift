@@ -24,6 +24,11 @@ struct AlarmListView: View {
                                      onTap: { editing = alarm },
                                      onToggle: { store.toggle(alarm, enabled: $0) })
                         }
+                        Text("made by 최준혁")
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.38))
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 4)
                         Spacer(minLength: 80)
                     }
                     .padding(.horizontal, 16)

@@ -290,6 +290,16 @@ fun AlarmListScreen(
                     }
                 }
 
+                item {
+                    Text(
+                        "made by 최준혁",
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+
                 item { Spacer(Modifier.height(80.dp)) }
             }
         }
