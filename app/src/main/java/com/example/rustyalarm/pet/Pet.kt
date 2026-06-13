@@ -32,6 +32,25 @@ data class Pet(
     }
 
     val progressToNextLevel: Float get() = (exp % 100) / 100f
+
+    /**
+     * Soft "happiness" gauge derived purely from time since last meal.
+     * No DB column needed — drops ~3 percentage points per hour, floors at 0.
+     */
+    val happiness: Int get() {
+        if (lastFedAt == 0L) return 60
+        val hours = (System.currentTimeMillis() - lastFedAt) / 3_600_000L
+        val decay = (hours * 3).coerceAtMost(100L).toInt()
+        return (100 - decay).coerceAtLeast(0)
+    }
+
+    val happinessLabel: String get() = when (happiness) {
+        in 80..100 -> "💖 기분 최고"
+        in 60..79  -> "😊 기분 좋음"
+        in 40..59  -> "😐 보통이에요"
+        in 20..39  -> "😔 좀 시무룩"
+        else       -> "😢 배고파요"
+    }
 }
 
 enum class PetStage(val emoji: String, val label: String) {

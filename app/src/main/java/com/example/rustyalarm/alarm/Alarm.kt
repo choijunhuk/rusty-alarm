@@ -13,6 +13,9 @@ enum class ChallengeType(val label: String) {
     STEP_COUNT("걷기 20걸음"),
     PHOTO("사진 인증"),
     LOCATION("위치 인증"),
+    QR_SCAN("QR 코드 스캔"),
+    VOICE("음성 인식 — '일어났다'"),
+    SQUAT("스쿼트 10회"),
 }
 
 data class Alarm(
@@ -34,7 +37,11 @@ data class Alarm(
     val maxSnoozes: Int = 0,          // 0 = unlimited
     val message: String = "",         // shown on ring screen, e.g. "Drink water!"
     val gradualWakeup: Boolean = false,
-    val mathProblemCount: Int = 1,       // 1-10 problems for math challenges  // vibrate → soft → loud staged ramp
+    val mathProblemCount: Int = 1,       // 1-10 problems for math challenges
+    val routineItems: List<String> = emptyList(),  // morning checklist shown after dismiss-gate
+    val youtubeUrl: String? = null,       // YouTube video or playlist URL — auto-played on ring
+    val alarmVolumePercent: Int = 100,    // 0-100, applied as soft scale on top of system alarm volume
+    val preAlarmMinutes: Int = 15,        // 0 = disabled; otherwise gentle pre-buzz N minutes ahead  // vibrate → soft → loud staged ramp
     val geofenceLat: Double? = null,     // location challenge target
     val geofenceLng: Double? = null,
     val geofenceRadius: Int = 100,       // metres for location proximity

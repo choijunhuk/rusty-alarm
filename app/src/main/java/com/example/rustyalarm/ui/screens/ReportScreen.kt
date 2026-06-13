@@ -82,11 +82,13 @@ fun ReportScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer)
                             Text(
-                                if (report.streakDays >= 7) "굉장해요! 일주일 연속이에요 🎉"
-                                else if (report.streakDays > 0) "오늘도 잘 일어나서 이어가요"
-                                else "오늘 첫 기상으로 시작해보세요",
+                                when {
+                                    report.streakDays >= 7 -> "일주일 연속 잘 일어나고 있어요"
+                                    report.streakDays > 0  -> "오늘도 잘 일어났어요"
+                                    else                   -> "오늘 첫 기상으로 시작해보세요"
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                             )
                         }
                     }
@@ -122,6 +124,9 @@ fun ReportScreen(
                         SummaryRow("울린 알람", "${report.fired}회")
                         SummaryRow("끈 알람", "${report.dismissed}회")
                         SummaryRow("스누즈", "${report.snoozed}회")
+                        if (report.challengesCompleted > 0) {
+                            SummaryRow("챌린지 완수", "${report.challengesCompleted}회")
+                        }
                     }
                 }
 

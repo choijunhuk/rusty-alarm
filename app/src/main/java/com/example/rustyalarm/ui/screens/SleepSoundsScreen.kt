@@ -1,4 +1,5 @@
 package com.example.rustyalarm.ui.screens
+
 import com.example.rustyalarm.ui.theme.screenBackgroundBrush
 
 import androidx.compose.foundation.background
@@ -13,37 +14,36 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.rustyalarm.sleep.NoiseColor
-import com.example.rustyalarm.sleep.NoiseGenerator
+import com.example.rustyalarm.sleep.SleepSoundService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SleepSoundsScreen(onBack: () -> Unit) {
-    val generator = remember { NoiseGenerator() }
-    DisposableEffect(Unit) { onDispose { generator.release() } }
+    val context = LocalContext.current
+    val selected by SleepSoundService.state.collectAsStateWithLifecycle()
+    val playing = selected != null
 
-    var selected by remember { mutableStateOf<NoiseColor?>(null) }
-    var playing  by remember { mutableStateOf(false) }
-    var timerMin by remember { mutableStateOf(0) }      // 0 = off
-    var remainingSec by remember { mutableStateOf(0) }
+    var timerMin by remember { mutableIntStateOf(0) }
+    var remainingSec by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(playing, timerMin) {
         if (playing && timerMin > 0) {
             remainingSec = timerMin * 60
-            while (isActive && remainingSec > 0) {
+            while (isActive && remainingSec > 0 && SleepSoundService.state.value != null) {
                 delay(1000)
                 remainingSec--
             }
-            if (playing) {
-                playing = false
-                generator.stop()
+            if (SleepSoundService.state.value != null) {
+                SleepSoundService.stop(context)
             }
         } else {
             remainingSec = 0
@@ -59,7 +59,7 @@ fun SleepSoundsScreen(onBack: () -> Unit) {
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
-                    title = { Text("수면 사운드") },
+                    title = { Text("수면 사운드", fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
@@ -76,6 +76,14 @@ fun SleepSoundsScreen(onBack: () -> Unit) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                if (playing) {
+                    Text(
+                        "🌙 백그라운드에서 계속 재생돼요. 알림에서 정지할 수 있어요.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
                 Text(
                     "사운드 선택",
                     style = MaterialTheme.typography.titleSmall,
@@ -87,13 +95,10 @@ fun SleepSoundsScreen(onBack: () -> Unit) {
                         color = color,
                         selected = selected == color,
                         onSelect = {
-                            if (selected == color && playing) {
-                                playing = false
-                                generator.stop()
+                            if (selected == color) {
+                                SleepSoundService.stop(context)
                             } else {
-                                selected = color
-                                generator.start(color)
-                                playing = true
+                                SleepSoundService.start(context, color)
                             }
                         },
                     )
@@ -127,10 +132,7 @@ fun SleepSoundsScreen(onBack: () -> Unit) {
 
                 if (playing) {
                     Button(
-                        onClick = {
-                            playing = false
-                            generator.stop()
-                        },
+                        onClick = { SleepSoundService.stop(context) },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                     ) {
                         Icon(Icons.Default.Stop, contentDescription = null)

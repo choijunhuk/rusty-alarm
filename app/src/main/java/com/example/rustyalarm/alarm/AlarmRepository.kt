@@ -1,6 +1,7 @@
 package com.example.rustyalarm.alarm
 
 import android.content.Context
+import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -18,9 +19,53 @@ class AlarmRepository(
         runCatching {
             com.example.rustyalarm.widget.NextAlarmWidget().updateAll(ctx)
         }
+        pushWearSnapshot()
+    }
+
+    private suspend fun pushWearSnapshot() {
+        val ctx = appContext ?: return
+        runCatching {
+            val all = dao.getAllEnabled().map { it.toAlarm() }
+            val now = System.currentTimeMillis()
+            val next = all.mapNotNull { a ->
+                val specific = a.specificDate
+                val ts = if (specific != null) {
+                    java.util.Calendar.getInstance().apply {
+                        timeInMillis = specific
+                        set(java.util.Calendar.HOUR_OF_DAY, a.hour)
+                        set(java.util.Calendar.MINUTE, a.minute)
+                        set(java.util.Calendar.SECOND, 0)
+                        set(java.util.Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+                } else {
+                    com.example.rustyalarm.rust.RustAlarmCore.calculateNextAlarmTimestamp(
+                        now, a.hour, a.minute, a.repeatDays.toIntArray(),
+                    )
+                }
+                a to ts
+            }.minByOrNull { it.second }
+            com.example.rustyalarm.wear.WearSync.pushNextAlarm(
+                context = ctx,
+                triggerAtMillis = next?.second,
+                title = next?.first?.title,
+            )
+        }
     }
     val alarms: Flow<List<Alarm>> = dao.getAllFlow().map { list -> list.map { it.toAlarm() } }
     val groups: Flow<List<String>> = dao.distinctGroupsFlow()
+
+    suspend fun allEnabled(): List<Alarm> = dao.getAllEnabled().map { it.toAlarm() }
+
+    /** Most-recent DISMISSED event timestamp, or null if none. */
+    suspend fun lastDismissedAt(): Long? = runCatching {
+        eventDao.recentDismissed(1).firstOrNull()?.timestamp
+    }.getOrNull()
+
+    /** Number of DISMISSED events within the last [days] days. */
+    suspend fun dismissedInLast(days: Int = 7): Int = runCatching {
+        val since = System.currentTimeMillis() - days * 24L * 60 * 60 * 1000L
+        eventDao.dismissedCountSince(since)
+    }.getOrDefault(0)
 
     suspend fun getById(id: Long): Alarm? = dao.getById(id)?.toAlarm()
 
@@ -92,6 +137,10 @@ class AlarmRepository(
                     put("message", e.message)
                     put("gradualWakeup", e.gradualWakeup)
                     put("mathProblemCount", e.mathProblemCount)
+                    put("routineItems", e.routineItems)
+                    put("youtubeUrl", e.youtubeUrl)
+                    put("alarmVolumePercent", e.alarmVolumePercent)
+                    put("preAlarmMinutes", e.preAlarmMinutes)
                 }
             )
         }
@@ -133,6 +182,13 @@ class AlarmRepository(
                 message = o.optString("message", ""),
                 gradualWakeup = o.optBoolean("gradualWakeup", false),
                 mathProblemCount = o.optInt("mathProblemCount", 1),
+                routineItems = o.optString("routineItems", "").let {
+                    if (it.isBlank()) emptyList()
+                    else it.split("|").filter { x -> x.isNotBlank() }
+                },
+                youtubeUrl = if (o.isNull("youtubeUrl")) null else o.optString("youtubeUrl").ifBlank { null },
+                alarmVolumePercent = o.optInt("alarmVolumePercent", 100),
+                preAlarmMinutes = o.optInt("preAlarmMinutes", 15),
             )
             save(alarm)
             count++

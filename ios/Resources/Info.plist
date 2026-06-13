@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>Rusty Alarm</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>MinimumOSVersion</key>
+    <string>17.0</string>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <true/>
+    </dict>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    <key>NSCameraUsageDescription</key>
+    <string>사진 인증 챌린지에서 카메라를 사용합니다.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>음성 인식 챌린지에서 마이크를 사용합니다.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>위치 인증 챌린지에서 현재 위치를 확인합니다.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>음성 인식으로 알람을 끕니다.</string>
+    <key>NSHealthShareUsageDescription</key>
+    <string>걷기 챌린지에서 걸음 수를 읽어옵니다.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>흔들기 / 스쿼트 챌린지에서 가속도계를 사용합니다.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+        <string>processing</string>
+    </array>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.example.rustyalarm.backup</string>
+    </array>
+    <key>UILaunchScreen</key>
+    <dict/>
+</dict>
+</plist>

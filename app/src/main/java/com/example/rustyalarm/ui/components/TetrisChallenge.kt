@@ -2,12 +2,13 @@ package com.example.rustyalarm.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowLeft
-import androidx.compose.material.icons.filled.ArrowRight
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,8 +18,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 private const val COLS = 10
@@ -28,6 +34,11 @@ private const val ROWS = 16
  * 1-line Tetris. The first time the player clears any number of rows the
  * [onLineCleared] callback fires; the parent screen turns that into "dismiss
  * the alarm".
+ *
+ * Controls:
+ *  ← / → : move left / right
+ *  ⟳ : rotate
+ *  ↓ : soft drop (1 cell). Hold cycle handled at parent level via repeated taps.
  */
 @Composable
 fun TetrisChallenge(
@@ -35,19 +46,18 @@ fun TetrisChallenge(
 ) {
     var board by remember { mutableStateOf(IntArray(COLS * ROWS)) }
     var piece by remember { mutableStateOf(spawnPiece()) }
-    var pos by remember { mutableStateOf(2 to 0) }
+    var pos by remember { mutableStateOf(((COLS / 2 - 2)) to 0) }
     var gameOver by remember { mutableStateOf(false) }
-    var totalLines by remember { mutableStateOf(0) }
+    var totalLines by remember { mutableIntStateOf(0) }
 
-    // Auto-drop tick
+    // Auto-drop tick (gentler — 800ms per cell)
     LaunchedEffect(gameOver) {
         while (!gameOver) {
-            delay(600)
+            delay(800)
             val (c, r) = pos
             if (canPlace(board, piece, c, r + 1)) {
                 pos = c to (r + 1)
             } else {
-                // Lock piece
                 val merged = merge(board, piece, c, r)
                 val (cleared, newBoard) = clearLines(merged)
                 if (cleared > 0) {
@@ -69,26 +79,61 @@ fun TetrisChallenge(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Text(
             "한 줄 만들면 알람이 꺼져요",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.secondary,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            "← → 이동 · ⟳ 회전 · ↓ 한 칸 내리기",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
         )
 
+        // ── Game board ──
+        val boardBg = MaterialTheme.colorScheme.background
+        val boardEdge = MaterialTheme.colorScheme.primary
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.78f)
+                .fillMaxWidth(0.92f)
                 .aspectRatio(COLS.toFloat() / ROWS)
-                .clip(RoundedCornerShape(10.dp))
-                .background(Color(0xFF0A0A18)),
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            boardBg.copy(alpha = 0.85f),
+                            boardBg,
+                        )
+                    )
+                )
+                .border(1.dp, boardEdge.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val cw = size.width / COLS
                 val ch = size.height / ROWS
 
-                // Draw locked board
+                // Grid lines (subtle)
+                val gridColor = boardEdge.copy(alpha = 0.08f)
+                for (c in 1 until COLS) {
+                    drawLine(
+                        gridColor,
+                        Offset(c * cw, 0f), Offset(c * cw, size.height),
+                        strokeWidth = 1f,
+                    )
+                }
+                for (r in 1 until ROWS) {
+                    drawLine(
+                        gridColor,
+                        Offset(0f, r * ch), Offset(size.width, r * ch),
+                        strokeWidth = 1f,
+                    )
+                }
+
+                // Locked board
                 for (r in 0 until ROWS) {
                     for (c in 0 until COLS) {
                         val v = board[r * COLS + c]
@@ -96,7 +141,7 @@ fun TetrisChallenge(
                     }
                 }
 
-                // Draw current piece
+                // Current piece
                 for ((dc, dr) in piece) {
                     val c = pCol + dc
                     val r = pRow + dr
@@ -104,41 +149,40 @@ fun TetrisChallenge(
                         drawCell(c, r, cw, ch, COLORS[piece.colorIndex])
                     }
                 }
-
-                // Grid lines
-                for (c in 1 until COLS) {
-                    drawLine(
-                        Color.White.copy(alpha = 0.05f),
-                        Offset(c * cw, 0f), Offset(c * cw, size.height),
-                        strokeWidth = 1f,
-                    )
-                }
-                for (r in 1 until ROWS) {
-                    drawLine(
-                        Color.White.copy(alpha = 0.05f),
-                        Offset(0f, r * ch), Offset(size.width, r * ch),
-                        strokeWidth = 1f,
-                    )
-                }
             }
         }
 
-        // Controls
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CtrlButton(Icons.Default.ArrowLeft, "왼쪽") {
-                if (canPlace(board, piece, pCol - 1, pRow)) pos = (pCol - 1) to pRow
+        // ── Controls ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CtrlButton(Icons.Default.ChevronLeft, "왼쪽") {
+                val (c, r) = pos
+                if (canPlace(board, piece, c - 1, r)) pos = (c - 1) to r
             }
             CtrlButton(Icons.Default.Refresh, "회전") {
+                val (c, r) = pos
                 val rot = piece.rotated()
-                if (canPlace(board, rot, pCol, pRow)) piece = rot
+                val origCx = piece.cells.map { it.first }.average()
+                val origCy = piece.cells.map { it.second }.average()
+                val newCx = rot.cells.map { it.first }.average()
+                val newCy = rot.cells.map { it.second }.average()
+                val nc = c + (origCx - newCx).roundToInt()
+                val nr = r + (origCy - newCy).roundToInt()
+                if (canPlace(board, rot, nc, nr)) {
+                    piece = rot
+                    pos = nc to nr
+                }
             }
-            CtrlButton(Icons.Default.ArrowRight, "오른쪽") {
-                if (canPlace(board, piece, pCol + 1, pRow)) pos = (pCol + 1) to pRow
+            CtrlButton(Icons.Default.ChevronRight, "오른쪽") {
+                val (c, r) = pos
+                if (canPlace(board, piece, c + 1, r)) pos = (c + 1) to r
             }
-            CtrlButton(Icons.Default.ArrowDownward, "내림") {
-                var r = pRow
-                while (canPlace(board, piece, pCol, r + 1)) r++
-                pos = pCol to r
+            CtrlButton(Icons.Default.ArrowDownward, "내리기", primary = true) {
+                val (c, r) = pos
+                if (canPlace(board, piece, c, r + 1)) pos = c to (r + 1)
             }
         }
 
@@ -148,18 +192,54 @@ fun TetrisChallenge(
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )
+        } else if (totalLines == 0) {
+            Text(
+                "줄을 채우면 사라져요 — 한 줄만 해도 통과!",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                style = MaterialTheme.typography.labelSmall,
+            )
         }
     }
 }
 
 @Composable
 private fun CtrlButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    desc: String,
+    icon: ImageVector,
+    label: String,
+    primary: Boolean = false,
     onClick: () -> Unit,
 ) {
-    FilledTonalIconButton(onClick = onClick) {
-        Icon(icon, contentDescription = desc)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        if (primary) {
+            FilledIconButton(
+                onClick = onClick,
+                modifier = Modifier.size(56.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            ) {
+                Icon(icon, contentDescription = label, modifier = Modifier.size(28.dp))
+            }
+        } else {
+            FilledTonalIconButton(
+                onClick = onClick,
+                modifier = Modifier.size(56.dp),
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                ),
+            ) {
+                Icon(icon, contentDescription = label, modifier = Modifier.size(26.dp))
+            }
+        }
+        Text(
+            label,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        )
     }
 }
 
@@ -168,8 +248,8 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCell(
 ) {
     drawRect(
         color = color,
-        topLeft = Offset(c * cw + 1, r * ch + 1),
-        size = Size(cw - 2, ch - 2),
+        topLeft = Offset(c * cw + 1.5f, r * ch + 1.5f),
+        size = Size(cw - 3f, ch - 3f),
     )
 }
 
@@ -180,7 +260,6 @@ private data class Piece(
     val colorIndex: Int,
 ) : Iterable<Pair<Int, Int>> by cells {
     fun rotated(): Piece {
-        // Rotate around (0,0): (x,y) -> (-y, x), then normalise so min coords = 0
         val r = cells.map { (x, y) -> -y to x }
         val minX = r.minOf { it.first }
         val minY = r.minOf { it.second }

@@ -1,44 +1,90 @@
 # Rusty Alarm 🦀
 
-Android 알람 앱 — UI/시스템은 **Kotlin + Jetpack Compose**, 도메인 로직은 **Rust crate**로 분리한 포트폴리오 프로젝트.
+알람 앱 멀티 플랫폼 포트폴리오 — Android · iOS · Wear OS.
 
 ---
 
-## 주요 기능
+## 어떤 버전이 필요한가요?
 
-- 알람 추가 / 수정 / 삭제
-- 반복 요일 설정 (일~토)
-- 5분 스누즈
-- 진동 설정
-- 활성화 / 비활성화 토글
-- 기기 재부팅 후 알람 자동 복구
-- Material 3 다크 테마
+| 플랫폼 | 폴더 | 설치 가이드 | 상태 |
+|--------|------|-------------|------|
+| 📱 **Android** | [`app/`](app/) · [`rust/`](rust/) | [Android 설치 →](#-android-설치) | Production ready (Kotlin + Rust JNI) |
+| 🍎 **iOS / iPadOS** | [`ios/`](ios/) | [iOS 설치 가이드 →](ios/INSTALL_PERSONAL_DEVICE.md) | SwiftUI 포트, 무료 Apple ID 지원 |
+| ⌚ **Wear OS** | [`wear/`](wear/) | [Wear OS 설치 →](#-wear-os-설치) | Android companion, WearableDataSync |
 
----
-
-## 기술 스택
-
-| 영역 | 기술 |
-|------|------|
-| UI | Kotlin · Jetpack Compose · Material 3 |
-| 알람 예약 | Android AlarmManager (setExactAndAllowWhileIdle) |
-| 백그라운드 | BroadcastReceiver · BootReceiver |
-| 알림 | NotificationManager |
-| 로컬 저장 | Room (SQLite) |
-| 도메인 로직 | Rust (chrono) |
-| 언어 브리지 | JNI (`jni` crate) |
-| 빌드 | Gradle (Kotlin DSL) · Cargo · cargo-ndk |
+각 폴더에 들어 있는 코드는 독립적으로 빌드된다. 셋 다 받을 필요 없이 본인이 쓰는 플랫폼만 골라서 빌드하면 된다.
 
 ---
 
-## 왜 Kotlin + Rust 구조인가?
+## 📱 Android 설치
 
-| 역할 | 이유 |
-|------|------|
-| Android 시스템 API | AlarmManager, BroadcastReceiver 등은 Android SDK 없이는 불가 → Kotlin |
-| 시간 계산 / 포매팅 | 플랫폼 독립적 순수 로직 → Rust (`cargo test` 로 빠른 검증) |
-| 타입 안전성 | Rust의 Result/Option으로 경계값 처리 강제 |
-| 포트폴리오 | 멀티 언어 JNI 연동 경험 시연 |
+대상: Android 7.0 (API 24) 이상.
+
+### 사전 준비
+
+```bash
+# Rust + cargo-ndk (도메인 로직 JNI 라이브러리)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+cargo install cargo-ndk
+```
+
+### 빌드
+
+```bash
+# 1. Rust JNI 라이브러리 빌드
+cd rust/alarm_core
+cargo ndk -t arm64-v8a -t x86_64 -o ../../app/src/main/jniLibs build
+
+# 2. Android Studio에서 rusty-alarm/ 폴더 Open → Run 'app'
+```
+
+> Rust 라이브러리 없이도 실행은 된다. `RustAlarmCore.isAvailable == false` 면 Kotlin 폴백.
+
+### 권한 (Android 12+)
+
+- **알람 및 리마인더** (SCHEDULE_EXACT_ALARM): 설정 → 앱 → Rusty Alarm.
+- **알림** (POST_NOTIFICATIONS, Android 13+): 최초 실행시 다이얼로그.
+
+자세한 권한 매트릭스는 [`app/README.md`](app/) 참고 (없으면 본 README 하단 Android 상세 섹션).
+
+---
+
+## 🍎 iOS 설치
+
+대상: iOS 17.0 이상.
+
+### 빠른 시작
+
+```bash
+cd ios
+brew install xcodegen        # 처음 한 번만
+xcodegen generate            # RustyAlarm.xcodeproj 생성
+open RustyAlarm.xcodeproj
+```
+
+Xcode 에서:
+1. **Signing & Capabilities** → 본인 Apple ID Personal Team 선택 (메인 + Widget 타깃).
+2. iPhone 연결 → ⌘R.
+
+자세한 단계 + 무료 Apple ID 한계 + 7일 재서명 사이클은 **[`ios/INSTALL_PERSONAL_DEVICE.md`](ios/INSTALL_PERSONAL_DEVICE.md)** 참고.
+
+> iOS는 무음모드 우회가 불가능하다 (Critical Alerts entitlement은 $99 유료 + Apple 수동 승인). 코드는 iOS 26 AlarmKit 듀얼 지원 (`Sources/Persistence/AlarmKitBridge.swift`).
+
+---
+
+## ⌚ Wear OS 설치
+
+대상: Wear OS 3.0 이상. Android 컴패니언 앱과 페어링 필요.
+
+### 빌드
+
+```bash
+# Android 앱과 동일한 Android Studio 프로젝트 안에서:
+# Run 구성 → wear 타깃 선택 → Wear OS 에뮬레이터 또는 워치 선택
+```
+
+페어링된 폰에 Android 앱이 먼저 설치되어 있어야 다음 알람 데이터를 받는다 (`WearableDataSync`).
 
 ---
 
@@ -46,151 +92,63 @@ Android 알람 앱 — UI/시스템은 **Kotlin + Jetpack Compose**, 도메인 �
 
 ```
 rusty-alarm/
-├── app/src/main/java/com/example/rustyalarm/
-│   ├── alarm/          # 도메인 + 시스템 (Scheduler, Receiver, DB)
-│   ├── ui/
-│   │   ├── navigation/ # 네비게이션 그래프
-│   │   ├── screens/    # 3개 화면 (List / Edit / Ring)
-│   │   ├── components/ # AlarmCard, DaySelector, TimePickerSection
-│   │   └── theme/      # Material 3 다크 테마
-│   ├── viewmodel/      # AlarmListViewModel, AlarmEditViewModel
-│   └── rust/           # RustAlarmCore.kt (JNI 브리지)
-└── rust/alarm_core/
-    └── src/
-        ├── lib.rs       # JNI 진입점
-        ├── alarm.rs     # validate_alarm_time
-        ├── time_calc.rs # calculate_next_alarm_timestamp
-        └── formatter.rs # format_time, get_repeat_days_label
+├── app/        # Android (Kotlin + Compose) — Rust JNI 도메인 로직
+├── ios/        # iOS (SwiftUI) — Widget + WatchApp 포함
+├── wear/       # Wear OS (Kotlin + Compose for Wear)
+├── rust/       # 공유 도메인 로직 (cargo crate)
+└── README.md   # ← 지금 보는 파일
 ```
 
 ---
 
-## 실행 방법 (전체)
+## 기능 매트릭스
 
-### 1. 사전 준비
-
-```bash
-# Rust 설치
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# Android 크로스 컴파일 타겟 추가
-rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
-
-# cargo-ndk 설치
-cargo install cargo-ndk
-```
-
-### 2. Rust 빌드 (JNI .so 생성)
-
-```bash
-cd rust/alarm_core
-
-# Debug 빌드 (에뮬레이터용)
-cargo ndk -t arm64-v8a -t x86_64 -o ../../app/src/main/jniLibs build
-
-# Release 빌드 (실기기 배포용)
-cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o ../../app/src/main/jniLibs build --release
-```
-
-빌드 후 `app/src/main/jniLibs/` 아래에 `.so` 파일이 생성됩니다:
-```
-app/src/main/jniLibs/
-├── arm64-v8a/libalarm_core.so
-├── armeabi-v7a/libalarm_core.so
-└── x86_64/libalarm_core.so
-```
-
-### 3. Rust 단위 테스트
-
-```bash
-cd rust/alarm_core
-cargo test
-# 결과: 15 passed; 0 failed
-```
-
-### 4. Android Studio에서 실행
-
-1. Android Studio → **Open** → `rusty-alarm/` 폴더 선택
-2. Rust `.so` 파일이 위의 단계에서 이미 생성되어 있어야 합니다
-3. **Run 'app'** (▶) → 에뮬레이터 또는 실기기 선택
-
-> **참고:** Rust 라이브러리 없이도 앱이 실행됩니다.
-> `RustAlarmCore.isAvailable == false`이면 Kotlin 폴백 구현으로 동작합니다.
+| 기능 | Android | iOS | Wear OS |
+|------|---------|-----|---------|
+| 알람 CRUD + 반복 | ✅ | ✅ | 보기 전용 |
+| 정확 알람 (무음 우회) | ✅ AlarmManager | △ Critical Alerts 필요 | n/a |
+| 챌린지 (수학/타이핑/흔들기/스쿼트) | ✅ | ✅ | ❌ |
+| 챌린지 (사진/QR/위치/걷기) | ✅ | ✅ | ❌ |
+| 테트리스 챌린지 | ✅ Compose Canvas | ✅ SwiftUI Canvas | ❌ |
+| 음성 인식 챌린지 | ✅ ko-KR | ✅ ko-KR | ❌ |
+| YouTube 알람 BGM | ✅ WebView | ✅ WKWebView | ❌ |
+| 펫 + 스킨 + 경험치 | ✅ | ✅ | ❌ |
+| 주간 리포트 + 30일 히트맵 | ✅ | ✅ | ❌ |
+| 잠금화면 위젯 | ✅ Glance | ✅ WidgetKit | n/a |
+| 컴패니언 워치 | ✅ Wearable Data Layer | ✅ WatchConnectivity | 본체 |
+| 백업 (주간 자동) | ✅ WorkManager | ✅ BGTaskScheduler | ❌ |
 
 ---
 
-## 알람 권한 설명
+## 기술 스택 요약
+
+| 영역 | Android | iOS |
+|------|---------|-----|
+| UI | Jetpack Compose + Material 3 | SwiftUI |
+| 알람 예약 | `AlarmManager.setExactAndAllowWhileIdle` | `UNCalendarNotificationTrigger` (+ iOS 26 AlarmKit) |
+| 백그라운드 | `BroadcastReceiver` · `WorkManager` | `BGTaskScheduler` |
+| 로컬 저장 | Room (SQLite) | UserDefaults + App Group |
+| 도메인 로직 | Rust crate via JNI | SwiftUI 네이티브 (Rust 미사용) |
+
+---
+
+## Android 권한 상세
 
 ### Android 12 이상 (API 31+) — SCHEDULE_EXACT_ALARM
-
-- 시스템 알람 앱 외의 앱은 **정확한 알람** 사용 시 권한 필요
-- 앱은 `canScheduleExactAlarms()` 체크 후:
-  - 권한 있음 → `setExactAndAllowWhileIdle` 사용
-  - 권한 없음 → `setAndAllowWhileIdle` 폴백 (오차 수 분 가능)
-- 권한 부여 방법: **설정 → 앱 → Rusty Alarm → 알람 및 리마인더 → 허용**
+- 시스템 알람 앱 외 → 명시적 권한 필요. `canScheduleExactAlarms()` 체크 후 분기.
 
 ### Android 13 이상 (API 33+) — POST_NOTIFICATIONS
+- 앱 최초 실행시 다이얼로그.
 
-- 앱 최초 실행 시 알림 권한 요청 다이얼로그 표시
-- 거부 시 알람이 예약되어도 알림이 표시되지 않음
-- 권한 부여 방법: **설정 → 앱 → Rusty Alarm → 알림 → 허용**
-
-### Android 14 이상 (API 34+) 주의사항
-
-- `USE_EXACT_ALARM`: 시계/알람 카테고리 앱에게 자동 부여되는 권한
-  (일반 앱은 Play Store 심사 필요)
-- `SCHEDULE_EXACT_ALARM`과 `USE_EXACT_ALARM` 중 하나라도 있으면 정확한 알람 사용 가능
-- 실기기 테스트 시 반드시 권한 허용 확인
+### Android 14 이상 (API 34+)
+- `USE_EXACT_ALARM` 권한은 시계/알람 카테고리 앱에 자동 부여 (Play Store 심사 필요).
 
 ---
-
-## GitHub 업로드
-
-```bash
-cd rusty-alarm
-git init
-git add .
-git commit -m "feat: initial rusty alarm app"
-git branch -M main
-git remote add origin https://github.com/USERNAME/rusty-alarm.git
-git push -u origin main
-```
-
-> `USERNAME`을 본인의 GitHub 계정명으로 변경하세요.
-
----
-
-## 추가된 기능
-
-### 알람 통계 화면
-- `AlarmEvent` 엔티티로 FIRED / DISMISSED / SNOOZED 이벤트를 자동 기록
-- 최근 7일 알람 발동 횟수 바 차트 (Compose Canvas 직접 구현 — 외부 차트 라이브러리 미사용)
-- 평균 반응 시간, 기상 완료율, 챌린지 사용 현황 통계
-- 알람 목록 우상단의 통계 아이콘으로 진입
-
-### 스마트 알람 (수면 감지)
-- 기상 시각 N분 전부터 가속도계로 잠 깊이를 분석
-- Rust `sleep_analysis.rs` — 표본의 분산을 [0,1)로 정규화하여 wakefulness 점수 산출
-- `SleepMonitorService` (Foreground Service) — 1분마다 점수 평가, 임계값 초과 시 알람 조기 발동
-- 임계값 미초과 시 원래 시각의 fallback exact alarm이 정상 발동
-- 알람 편집 화면의 "스마트 알람" 토글 + 10~45분 슬라이더로 윈도우 조절
-
-### UniFFI 마이그레이션 경로
-- `rust/alarm_core/src/alarm_core.udl` — UniFFI 인터페이스 정의 파일
-- 활성화 방법:
-  ```bash
-  cargo install uniffi-bindgen
-  cd rust/alarm_core
-  # Cargo.toml의 주석 처리된 uniffi dependency를 활성화한 뒤:
-  uniffi-bindgen generate src/alarm_core.udl --language kotlin -o ../../app/src/main/java
-  ```
-- 기존 JNI 바인딩과 함께 사용 가능 — 점진적 마이그레이션
 
 ## 향후 개선 예정
 
-- [ ] UniFFI 활성화 (현재는 UDL + 문서만, 빌드 통합 미적용)
-- [ ] 위젯 (Glance API)
-- [ ] Wear OS 연동
-- [ ] Hilt 의존성 주입 적용
-- [ ] Espresso / Compose UI 테스트
-- [ ] WorkManager로 BootReceiver 보강 (Doze 모드 내성)
+- [ ] UniFFI 활성화 (현재는 UDL + 문서만)
+- [ ] Hilt 의존성 주입
+- [ ] Compose UI 테스트
+- [ ] iOS 유료 가입 후 TestFlight 베타 채널
+- [ ] iOS Critical Alerts entitlement 신청 (Apple 수동 검토)

@@ -12,55 +12,71 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.example.rustyalarm.prefs.ThemeMode
 
-val Purple80   = Color(0xFF7C4DFF)
-val Cyan80     = Color(0xFF00E5FF)
-val Navy20     = Color(0xFF0A0A1A)
-val Navy30     = Color(0xFF16162A)
-val Navy40     = Color(0xFF21213A)
-val GrayMuted  = Color(0xFF8888AA)
+// ── Brand palette ──────────────────────────────────
+// Inspired by sunrise → calm-violet, warm peach, golden glow.
 
-private val DarkColors = darkColorScheme(
-    primary            = Color(0xFF7C4DFF),
-    onPrimary          = Color.White,
-    primaryContainer   = Color(0xFF4A148C),
-    onPrimaryContainer = Color(0xFFE8D5FF),
-    secondary          = Color(0xFF00E5FF),
-    onSecondary        = Color.Black,
-    secondaryContainer = Color(0xFF00838F),
-    background         = Color(0xFF0A0A1A),
-    onBackground       = Color.White,
-    surface            = Color(0xFF16162A),
-    onSurface          = Color.White,
-    surfaceVariant     = Color(0xFF21213A),
-    onSurfaceVariant   = Color(0xFFBBBBDD),
-    error              = Color(0xFFFF5252),
-    onError            = Color.White,
-    outline            = Color(0xFF44446A),
-)
-
+// LIGHT
 private val LightColors = lightColorScheme(
-    primary            = Color(0xFF5E2DD9),
-    onPrimary          = Color.White,
-    primaryContainer   = Color(0xFFEDE2FF),
-    onPrimaryContainer = Color(0xFF2A0080),
-    secondary          = Color(0xFF008CA0),
-    onSecondary        = Color.White,
-    secondaryContainer = Color(0xFFD4F5FB),
-    background         = Color(0xFFFAFAFC),
-    onBackground       = Color(0xFF111122),
-    surface            = Color.White,
-    onSurface          = Color(0xFF111122),
-    surfaceVariant     = Color(0xFFEEEEF6),
-    onSurfaceVariant   = Color(0xFF55556B),
-    error              = Color(0xFFD32F2F),
-    onError            = Color.White,
-    outline            = Color(0xFFB8B8C8),
+    primary              = Color(0xFF5B3FE4),
+    onPrimary            = Color.White,
+    primaryContainer     = Color(0xFFEDE6FF),
+    onPrimaryContainer   = Color(0xFF24006B),
+    secondary            = Color(0xFFFF7A45),
+    onSecondary          = Color.White,
+    secondaryContainer   = Color(0xFFFFD9C7),
+    onSecondaryContainer = Color(0xFF3D1100),
+    tertiary             = Color(0xFFFFB200),
+    onTertiary           = Color(0xFF402B00),
+    tertiaryContainer    = Color(0xFFFFE5A8),
+    onTertiaryContainer  = Color(0xFF2A1B00),
+    background           = Color(0xFFFFFBF5),
+    onBackground         = Color(0xFF1A1625),
+    surface              = Color(0xFFFFFDF8),
+    onSurface            = Color(0xFF1A1625),
+    surfaceVariant       = Color(0xFFF1E8E2),
+    onSurfaceVariant     = Color(0xFF5A4F4A),
+    outline              = Color(0xFFB8AFA7),
+    error                = Color(0xFFD32F2F),
+    onError              = Color.White,
 )
+
+// DARK
+private val DarkColors = darkColorScheme(
+    primary              = Color(0xFF9B8AFF),
+    onPrimary            = Color(0xFF1B0B5C),
+    primaryContainer     = Color(0xFF3A2A78),
+    onPrimaryContainer   = Color(0xFFE8DFFF),
+    secondary            = Color(0xFFFFB088),
+    onSecondary          = Color(0xFF3D1100),
+    secondaryContainer   = Color(0xFF5A2300),
+    onSecondaryContainer = Color(0xFFFFD9C7),
+    tertiary             = Color(0xFFFFD278),
+    onTertiary           = Color(0xFF422B00),
+    tertiaryContainer    = Color(0xFF604200),
+    onTertiaryContainer  = Color(0xFFFFE5A8),
+    background           = Color(0xFF0F0D26),
+    onBackground         = Color(0xFFE8E4F0),
+    surface              = Color(0xFF1B1840),
+    onSurface            = Color(0xFFE8E4F0),
+    surfaceVariant       = Color(0xFF2A2654),
+    onSurfaceVariant     = Color(0xFFCAC2E8),
+    outline              = Color(0xFF54508A),
+    error                = Color(0xFFFF6B6B),
+    onError              = Color.White,
+)
+
+// Back-compat exports (used elsewhere in the project)
+val Purple80  = Color(0xFF9B8AFF)
+val Cyan80    = Color(0xFFFFB088)
+val Navy20    = Color(0xFF0F0D26)
+val Navy30    = Color(0xFF1B1840)
+val Navy40    = Color(0xFF2A2654)
+val GrayMuted = Color(0xFF888899)
 
 @Composable
 fun RustyAlarmTheme(
     mode: ThemeMode = ThemeMode.SYSTEM,
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = true,    // Material You — feels like the user's phone
     content: @Composable () -> Unit,
 ) {
     val useDark = when (mode) {

@@ -94,23 +94,23 @@ class NoiseGenerator {
     private fun generate(color: NoiseColor, buf: ShortArray, s: GenState) {
         when (color) {
             NoiseColor.WHITE -> for (i in buf.indices) {
-                buf[i] = (Random.nextFloat() * 2 - 1).toPcm() * 0.55f
+                buf[i] = ((Random.nextFloat() * 2 - 1) * 0.55f).toPcm()
             }
             NoiseColor.PINK -> for (i in buf.indices) {
-                buf[i] = pink(s).toPcm() * 0.7f
+                buf[i] = (pink(s) * 0.7f).toPcm()
             }
             NoiseColor.BROWN -> for (i in buf.indices) {
-                buf[i] = brown(s).toPcm() * 0.9f
+                buf[i] = (brown(s) * 0.9f).toPcm()
             }
             NoiseColor.RAIN -> for (i in buf.indices) {
                 val base = brown(s) * 0.85f
                 val drop = if (Random.nextFloat() < 0.0025f) (Random.nextFloat() * 0.5f) else 0f
-                buf[i] = (base + drop).toPcm() * 0.95f
+                buf[i] = ((base + drop) * 0.95f).toPcm()
             }
             NoiseColor.OCEAN -> for (i in buf.indices) {
                 s.oceanPhase += 0.00010f
                 val env = (0.45f + 0.55f * kotlin.math.sin(s.oceanPhase.toDouble()).toFloat())
-                buf[i] = (brown(s) * env).toPcm() * 0.95f
+                buf[i] = (brown(s) * env * 0.95f).toPcm()
             }
         }
     }

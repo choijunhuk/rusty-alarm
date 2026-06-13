@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -74,6 +75,13 @@ fun PetScreen(
             },
         ) { padding ->
             val p = pet
+            if (p == null) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator() }
+                return@Scaffold
+            }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -81,11 +89,6 @@ fun PetScreen(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (p == null) {
-                    CircularProgressIndicator()
-                    return@Column
-                }
-
                 Spacer(Modifier.height(24.dp))
 
                 val displayEmoji = when (p.skinEnum) {
@@ -93,11 +96,17 @@ fun PetScreen(
                     PetSkin.RAINBOW -> "🌈${p.stage.emoji}🌈"
                     else -> p.stage.emoji
                 }
-                Text(
-                    displayEmoji,
-                    fontSize = 110.sp,
-                    modifier = Modifier.scale(s),
-                )
+                androidx.compose.animation.Crossfade(
+                    targetState = displayEmoji,
+                    label = "petEvolve",
+                    animationSpec = androidx.compose.animation.core.tween(600),
+                ) { e ->
+                    Text(
+                        e,
+                        fontSize = 110.sp,
+                        modifier = Modifier.scale(s),
+                    )
+                }
 
                 Spacer(Modifier.height(16.dp))
 
@@ -139,6 +148,27 @@ fun PetScreen(
                             modifier = Modifier.fillMaxWidth().height(8.dp),
                             color = MaterialTheme.colorScheme.primary,
                         )
+
+                        Spacer(Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(p.happinessLabel,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium)
+                            Text("${p.happiness}%",
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { p.happiness / 100f },
+                            modifier = Modifier.fillMaxWidth().height(8.dp),
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
                     }
                 }
 
@@ -150,22 +180,48 @@ fun PetScreen(
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("🌅 잘 일어날수록 펫이 자라요!",
+                        Text("성장 방법",
                             style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.secondary)
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface)
                         Spacer(Modifier.height(8.dp))
-                        Text("알람을 끄면 +10 EXP — 챌린지 완수 시 +5 보너스. 스누즈는 EXP가 쌓이지 않아요.",
+                        Text("• 알람을 끄면 +10 경험치",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                        Text("• 챌린지를 완수하면 +5 경험치 보너스",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                        Text("• 스누즈는 경험치가 쌓이지 않아요",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                     }
                 }
 
                 Spacer(Modifier.height(8.dp))
+                val feedScope = rememberCoroutineScope()
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                Button(
+                    onClick = {
+                        feedScope.launch {
+                            val reason = vm.feed()
+                            val msg = reason ?: "${p.name}이(가) 기뻐해요. +8 경험치"
+                            android.widget.Toast.makeText(
+                                ctx, msg, android.widget.Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Text("먹이주기", fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.height(8.dp))
                 OutlinedButton(
                     onClick = { skinDialog = true },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
                 ) {
-                    Text("🎨 스킨 변경 (현재: ${p.skinEnum.label})")
+                    Text("스킨 변경 · 현재 ${p.skinEnum.label}")
                 }
             }
         }

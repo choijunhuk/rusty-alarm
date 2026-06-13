@@ -3,7 +3,7 @@ package com.example.rustyalarm.alarm
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-enum class AlarmEventType { FIRED, DISMISSED, SNOOZED }
+enum class AlarmEventType { FIRED, DISMISSED, SNOOZED, BEDTIME }
 
 @Entity(tableName = "alarm_events")
 data class AlarmEvent(

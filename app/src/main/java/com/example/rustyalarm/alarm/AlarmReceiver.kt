@@ -61,14 +61,11 @@ class AlarmReceiver : BroadcastReceiver() {
             volumeRamp,
         )
 
-        // Belt-and-suspenders: also start the ring activity directly so the
-        // alarm screen appears even on devices where the full-screen intent
-        // is downgraded to a heads-up notification (e.g. OEM customisations,
-        // Android 14+ when the app loses USE_FULL_SCREEN_INTENT permission).
-        val ringActivity = Intent(context, com.example.rustyalarm.AlarmRingActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                Intent.FLAG_ACTIVITY_NO_USER_ACTION
+        // Start the foreground ring service — it owns the sound + vibration.
+        // The service survives Home / Back press and re-launches the UI via
+        // the full-screen notification intent.
+        val serviceIntent = Intent(context, AlarmRingService::class.java).apply {
+            action = AlarmRingService.ACTION_START_RING
             putExtra(EXTRA_ALARM_ID, alarmId)
             putExtra(EXTRA_ALARM_TITLE, title)
             putExtra(EXTRA_ALARM_HOUR, hour)
@@ -80,19 +77,33 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(EXTRA_VOLUME_RAMP_SECONDS, volumeRamp)
             putExtra(EXTRA_MAX_SNOOZES, maxSnoozes)
             putExtra(EXTRA_MESSAGE, message)
-            // Pass-through new fields
             if (intent.hasExtra(EXTRA_GRADUAL_WAKEUP))
                 putExtra(EXTRA_GRADUAL_WAKEUP, intent.getBooleanExtra(EXTRA_GRADUAL_WAKEUP, false))
             putExtra(EXTRA_MATH_PROBLEM_COUNT, intent.getIntExtra(EXTRA_MATH_PROBLEM_COUNT, 1))
+            intent.getStringArrayExtra(EXTRA_ROUTINE_ITEMS)?.let {
+                putExtra(EXTRA_ROUTINE_ITEMS, it)
+            }
+            intent.getStringExtra(EXTRA_YOUTUBE_URL)?.let {
+                putExtra(EXTRA_YOUTUBE_URL, it)
+            }
+            putExtra(EXTRA_ALARM_VOLUME_PERCENT,
+                intent.getIntExtra(EXTRA_ALARM_VOLUME_PERCENT, 100))
             if (intent.hasExtra(EXTRA_GEOFENCE_LAT))
                 putExtra(EXTRA_GEOFENCE_LAT, intent.getDoubleExtra(EXTRA_GEOFENCE_LAT, 0.0))
             if (intent.hasExtra(EXTRA_GEOFENCE_LNG))
                 putExtra(EXTRA_GEOFENCE_LNG, intent.getDoubleExtra(EXTRA_GEOFENCE_LNG, 0.0))
             putExtra(EXTRA_GEOFENCE_RADIUS, intent.getIntExtra(EXTRA_GEOFENCE_RADIUS, 100))
         }
-        runCatching { context.startActivity(ringActivity) }
-
-        if (vibrate) vibrate(context)
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+        }
+        // Activity launches via the service's foreground notification
+        // fullScreenIntent — no direct startActivity here, which prevented
+        // a race that could spawn two Activity instances.
 
         val now = System.currentTimeMillis()
         rememberFiredAt(context, alarmId, now)
@@ -134,6 +145,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val challengeType = intent.getStringExtra(EXTRA_CHALLENGE_TYPE) ?: ChallengeType.NONE.name
         val maxSnoozes   = intent.getIntExtra(EXTRA_MAX_SNOOZES, 0)
 
+        AlarmRingService.stop(context)
         AlarmNotificationManager.cancelNotification(context, alarmId)
 
         // Honour snooze cap (max == 0 means unlimited)
@@ -177,6 +189,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
     private fun handleDismiss(context: Context, intent: Intent) {
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
+        AlarmRingService.stop(context)
         AlarmNotificationManager.cancelNotification(context, alarmId)
         // Reset snooze counter once the user actually dismisses
         context.getSharedPreferences("rusty_alarm_stats", Context.MODE_PRIVATE)
@@ -248,6 +261,9 @@ class AlarmReceiver : BroadcastReceiver() {
         const val EXTRA_MESSAGE        = "message"
         const val EXTRA_GRADUAL_WAKEUP = "gradual_wakeup"
         const val EXTRA_MATH_PROBLEM_COUNT = "math_problem_count"
+        const val EXTRA_ROUTINE_ITEMS = "routine_items"
+        const val EXTRA_YOUTUBE_URL   = "youtube_url"
+        const val EXTRA_ALARM_VOLUME_PERCENT = "alarm_volume_percent"
         const val EXTRA_GEOFENCE_LAT   = "geofence_lat"
         const val EXTRA_GEOFENCE_LNG   = "geofence_lng"
         const val EXTRA_GEOFENCE_RADIUS = "geofence_radius"

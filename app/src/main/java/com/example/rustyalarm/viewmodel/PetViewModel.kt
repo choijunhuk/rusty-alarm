@@ -27,6 +27,22 @@ class PetViewModel(private val dao: PetDao) : ViewModel() {
         viewModelScope.launch { dao.setSkin(skinName) }
     }
 
+    /**
+     * Tries to feed the pet. Returns null on success or a Korean reason
+     * string when feeding is rate-limited (last meal too recent).
+     */
+    suspend fun feed(): String? {
+        val current = dao.get() ?: return "펫을 찾을 수 없어요"
+        val gap = System.currentTimeMillis() - current.lastFedAt
+        val cooldown = 60L * 60 * 1000L   // 1 hour
+        if (gap < cooldown) {
+            val mins = ((cooldown - gap) / 60_000L).toInt().coerceAtLeast(1)
+            return "${mins}분 뒤에 다시 줄 수 있어요"
+        }
+        dao.addExp(8)
+        return null
+    }
+
     class Factory(private val dao: PetDao) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =

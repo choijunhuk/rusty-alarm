@@ -20,6 +20,7 @@ data class WeeklyReport(
     val snoozed: Int = 0,
     val avgWakeupHHMM: String = "—",
     val streakDays: Int = 0,
+    val challengesCompleted: Int = 0,
     val ready: Boolean = false,
     /** Map<yyyy-MM-dd, dismissedCount> for the last 30 days, oldest first. */
     val heatmap: List<Pair<String, Int>> = emptyList(),
@@ -42,6 +43,11 @@ class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
             val fired      = events.count { it.eventType == AlarmEventType.FIRED.name }
             val dismissed  = events.count { it.eventType == AlarmEventType.DISMISSED.name }
             val snoozed    = events.count { it.eventType == AlarmEventType.SNOOZED.name }
+            val challengesCompleted = events.count {
+                it.eventType == AlarmEventType.DISMISSED.name &&
+                    it.challengeType != null &&
+                    it.challengeType != "NONE"
+            }
 
             val avg = events
                 .filter { it.eventType == AlarmEventType.DISMISSED.name }
@@ -81,6 +87,7 @@ class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
                 snoozed = snoozed,
                 avgWakeupHHMM = avgWakeup,
                 streakDays = streak,
+                challengesCompleted = challengesCompleted,
                 ready = true,
                 heatmap = heatmap,
             )

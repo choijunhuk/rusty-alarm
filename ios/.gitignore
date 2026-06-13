@@ -1,0 +1,16 @@
+# Xcode generated artifacts (regenerate via `xcodegen generate`)
+RustyAlarm.xcodeproj/
+build/
+DerivedData/
+
+# Xcode user state
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+
+# Swift package
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store

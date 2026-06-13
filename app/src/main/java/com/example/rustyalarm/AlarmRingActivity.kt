@@ -1,55 +1,38 @@
 package com.example.rustyalarm
 
-import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
-import android.media.AudioFocusRequest
-import android.media.AudioManager
-import android.media.MediaPlayer
-import android.media.RingtoneManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.rustyalarm.alarm.AlarmDatabase
 import com.example.rustyalarm.alarm.AlarmEvent
 import com.example.rustyalarm.alarm.AlarmEventType
 import com.example.rustyalarm.alarm.AlarmNotificationManager
 import com.example.rustyalarm.alarm.AlarmReceiver
+import com.example.rustyalarm.alarm.AlarmRingService
 import com.example.rustyalarm.alarm.AlarmSchedulerSnooze
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.ChallengeType
-import com.example.rustyalarm.prefs.ThemeMode
-import com.example.rustyalarm.prefs.ThemePreferences
 import com.example.rustyalarm.ui.screens.AlarmRingScreen
 import com.example.rustyalarm.ui.theme.RustyAlarmTheme
-import androidx.compose.runtime.getValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * UI-only host for the active alarm. Sound + vibration live in
+ * [AlarmRingService] so pressing Home or Back cannot silence the alarm —
+ * the service keeps running and re-presents this Activity via the
+ * full-screen notification intent.
+ */
 class AlarmRingActivity : ComponentActivity() {
-
-    private var mediaPlayer: MediaPlayer? = null
-    private var vibrator: Vibrator? = null
-    private val rampScope = MainScope()
-    private var rampJob: Job? = null
-    private var savedAlarmVolume: Int = -1
-    private var audioFocusRequest: AudioFocusRequest? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,6 +49,13 @@ class AlarmRingActivity : ComponentActivity() {
             )
         }
 
+        // Block back press — user must solve the challenge / press dismiss.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Intentionally do nothing. Alarm cannot be dismissed via back.
+            }
+        })
+
         val alarmId       = intent.getLongExtra(AlarmReceiver.EXTRA_ALARM_ID, -1L)
         val title         = intent.getStringExtra(AlarmReceiver.EXTRA_ALARM_TITLE) ?: "알람"
         val hour          = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_HOUR, 0)
@@ -73,11 +63,11 @@ class AlarmRingActivity : ComponentActivity() {
         val vibrate       = intent.getBooleanExtra(AlarmReceiver.EXTRA_VIBRATE, true)
         val soundEnabled  = intent.getBooleanExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, true)
         val ringtoneUri   = intent.getStringExtra(AlarmReceiver.EXTRA_RINGTONE_URI)
-        val volumeRamp    = intent.getIntExtra(AlarmReceiver.EXTRA_VOLUME_RAMP_SECONDS, 0)
         val maxSnoozes    = intent.getIntExtra(AlarmReceiver.EXTRA_MAX_SNOOZES, 0)
         val message       = intent.getStringExtra(AlarmReceiver.EXTRA_MESSAGE) ?: ""
-        val gradualWakeup = intent.getBooleanExtra(AlarmReceiver.EXTRA_GRADUAL_WAKEUP, false)
         val mathProblemCount = intent.getIntExtra(AlarmReceiver.EXTRA_MATH_PROBLEM_COUNT, 1)
+        val routineItems = intent.getStringArrayExtra(AlarmReceiver.EXTRA_ROUTINE_ITEMS)?.toList() ?: emptyList()
+        val youtubeUrl = intent.getStringExtra(AlarmReceiver.EXTRA_YOUTUBE_URL)
         val geofenceLat   = if (intent.hasExtra(AlarmReceiver.EXTRA_GEOFENCE_LAT))
             intent.getDoubleExtra(AlarmReceiver.EXTRA_GEOFENCE_LAT, 0.0) else null
         val geofenceLng   = if (intent.hasExtra(AlarmReceiver.EXTRA_GEOFENCE_LNG))
@@ -93,22 +83,6 @@ class AlarmRingActivity : ComponentActivity() {
                 .getInt("snooze_count_$alarmId", 0)
             (maxSnoozes - used).coerceAtLeast(0)
         }
-
-        if (soundEnabled) {
-            forceMaxAlarmVolume()
-            requestAudioFocusForAlarm()
-            if (gradualWakeup) {
-                // Stage 1: 30s of vibrate-only prelude.
-                // Stage 2: sound kicks in at low volume, ramps to full over 60s.
-                rampScope.launch {
-                    delay(30_000)
-                    startAlarmSound(ringtoneUri, 60)
-                }
-            } else {
-                startAlarmSound(ringtoneUri, volumeRamp)
-            }
-        }
-        if (vibrate) startVibration()
 
         val firedAt = System.currentTimeMillis()
 
@@ -130,10 +104,11 @@ class AlarmRingActivity : ComponentActivity() {
                         geofenceLng = geofenceLng,
                         geofenceRadius = geofenceRadius,
                         mathProblemCount = mathProblemCount,
+                        routineItems = routineItems,
+                        youtubeUrl = youtubeUrl,
                         onDismiss = {
-                            stopSounds()
+                            AlarmRingService.stop(this)
                             AlarmNotificationManager.cancelNotification(this, alarmId)
-                            // Reset snooze counter for next time
                             getSharedPreferences("rusty_alarm_stats", MODE_PRIVATE)
                                 .edit().remove("snooze_count_$alarmId").apply()
                             val responseSec = (System.currentTimeMillis() - firedAt) / 1000L
@@ -147,174 +122,36 @@ class AlarmRingActivity : ComponentActivity() {
                                         challengeType = challengeType.name,
                                     )
                                 )
-                                // Pet: +10 EXP for dismiss, +5 bonus when a challenge gated the dismiss
                                 val bonus = if (challengeType != ChallengeType.NONE) 5 else 0
                                 db.petDao().addExp(10 + bonus)
                             }
-                            finish()
+                            finishAndRemoveTask()
                         },
                         onSnooze = snooze@{
-                            // Honour snooze cap (button is also disabled when remaining == 0)
                             if (snoozesRemaining <= 0) return@snooze
-                            val prefs = getSharedPreferences("rusty_alarm_stats", MODE_PRIVATE)
-                            val used = prefs.getInt("snooze_count_$alarmId", 0)
-                            prefs.edit().putInt("snooze_count_$alarmId", used + 1).apply()
-
-                            stopSounds()
-                            AlarmNotificationManager.cancelNotification(this, alarmId)
-                            val snoozeMillis = System.currentTimeMillis() + 5 * 60 * 1000L
-                            val snooze = Alarm(
-                                id           = alarmId + AlarmReceiver.SNOOZE_ID_OFFSET,
-                                title        = "$title (다시 알림)",
-                                hour         = hour,
-                                minute       = minute,
-                                vibrate      = vibrate,
-                                soundEnabled = soundEnabled,
-                                ringtoneUri  = ringtoneUri,
-                                challengeType = ChallengeType.NONE,
-                            )
-                            CoroutineScope(Dispatchers.IO).launch {
-                                AlarmDatabase.getDatabase(this@AlarmRingActivity)
-                                    .alarmEventDao().insert(
-                                        AlarmEvent(
-                                            alarmId = alarmId,
-                                            eventType = AlarmEventType.SNOOZED.name,
-                                            challengeType = challengeType.name,
-                                        )
-                                    )
-                                AlarmSchedulerSnooze(this@AlarmRingActivity).scheduleAt(snooze, snoozeMillis)
+                            // Single source of truth: dispatch ACTION_SNOOZE to
+                            // AlarmReceiver. The receiver handles counter,
+                            // logging, and scheduling. Prevents double-count
+                            // when the notification snooze action also fires.
+                            val snoozeIntent = Intent(this, AlarmReceiver::class.java).apply {
+                                action = AlarmReceiver.ACTION_SNOOZE
+                                putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarmId)
+                                putExtra(AlarmReceiver.EXTRA_ALARM_TITLE, title)
+                                putExtra(AlarmReceiver.EXTRA_ALARM_HOUR, hour)
+                                putExtra(AlarmReceiver.EXTRA_ALARM_MINUTE, minute)
+                                putExtra(AlarmReceiver.EXTRA_VIBRATE, vibrate)
+                                putExtra(AlarmReceiver.EXTRA_SOUND_ENABLED, soundEnabled)
+                                putExtra(AlarmReceiver.EXTRA_RINGTONE_URI, ringtoneUri)
+                                putExtra(AlarmReceiver.EXTRA_CHALLENGE_TYPE, challengeType.name)
+                                putExtra(AlarmReceiver.EXTRA_MAX_SNOOZES, maxSnoozes)
                             }
-                            finish()
+                            sendBroadcast(snoozeIntent)
+                            finishAndRemoveTask()
                         },
                     )
                 }
             }
         }
-    }
-
-    private fun startAlarmSound(ringtoneUriStr: String?, rampSeconds: Int) {
-        val uri = ringtoneUriStr?.let { runCatching { Uri.parse(it) }.getOrNull() }
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            ?: return
-        try {
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(this@AlarmRingActivity, uri)
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                isLooping = true
-                if (rampSeconds > 0) setVolume(0f, 0f)
-                prepareAsync()
-                setOnPreparedListener {
-                    start()
-                    if (rampSeconds > 0) startVolumeRamp(rampSeconds)
-                }
-            }
-        } catch (_: Exception) {}
-    }
-
-    private fun startVolumeRamp(rampSeconds: Int) {
-        rampJob?.cancel()
-        rampJob = rampScope.launch {
-            val steps = rampSeconds * 4   // 4 steps per second
-            for (i in 1..steps) {
-                val v = i / steps.toFloat()
-                runCatching { mediaPlayer?.setVolume(v, v) }
-                delay(250)
-            }
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    private fun startVibration() {
-        val pattern = longArrayOf(0, 500, 300, 500, 300, 500)
-        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-            (getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
-        else
-            getSystemService(VIBRATOR_SERVICE) as Vibrator
-        vibrator?.let {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                it.vibrate(VibrationEffect.createWaveform(pattern, 0))
-            else
-                it.vibrate(pattern, 0)
-        }
-    }
-
-    private fun requestAudioFocusForAlarm() {
-        try {
-            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val attrs = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-                val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
-                    .setAudioAttributes(attrs)
-                    .setOnAudioFocusChangeListener { /* ignore changes — alarm holds focus */ }
-                    .build()
-                audioFocusRequest = req
-                am.requestAudioFocus(req)
-            } else {
-                @Suppress("DEPRECATION")
-                am.requestAudioFocus(null, AudioManager.STREAM_ALARM,
-                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
-            }
-        } catch (_: Throwable) { /* best-effort */ }
-    }
-
-    private fun abandonAudioFocus() {
-        try {
-            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                audioFocusRequest?.let { am.abandonAudioFocusRequest(it) }
-            } else {
-                @Suppress("DEPRECATION")
-                am.abandonAudioFocus(null)
-            }
-        } catch (_: Throwable) {}
-        audioFocusRequest = null
-    }
-
-    private fun forceMaxAlarmVolume() {
-        try {
-            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            val max = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-            savedAlarmVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
-            am.setStreamVolume(AudioManager.STREAM_ALARM, max, 0)
-        } catch (_: SecurityException) {
-            // Some OEMs require notification policy access to change alarm
-            // volume while DND is on — fail silently rather than crash.
-        }
-    }
-
-    private fun restoreAlarmVolume() {
-        if (savedAlarmVolume < 0) return
-        try {
-            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            am.setStreamVolume(AudioManager.STREAM_ALARM, savedAlarmVolume, 0)
-        } catch (_: SecurityException) {}
-        savedAlarmVolume = -1
-    }
-
-    private fun stopSounds() {
-        rampJob?.cancel()
-        rampJob = null
-        mediaPlayer?.runCatching { stop(); release() }
-        mediaPlayer = null
-        vibrator?.cancel()
-        vibrator = null
-        restoreAlarmVolume()
-        abandonAudioFocus()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopSounds()
-        rampScope.cancel()
     }
 
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent) }

@@ -16,7 +16,7 @@ class AlarmScheduler(private val context: Context) {
         if (!alarm.enabled) return
 
         val specificDate = alarm.specificDate
-        val triggerAtMillis = if (specificDate != null) {
+        var triggerAtMillis = if (specificDate != null) {
             Calendar.getInstance().apply {
                 timeInMillis = specificDate
                 set(Calendar.HOUR_OF_DAY, alarm.hour)
@@ -33,6 +33,9 @@ class AlarmScheduler(private val context: Context) {
             )
         }
 
+        // Weather-adjusted wake-up: shift earlier when rain expected
+        triggerAtMillis = applyWeatherAdjust(triggerAtMillis)
+
         // Fallback exact alarm — always armed
         val firePendingIntent = buildPendingIntent(alarm)
         setExact(triggerAtMillis, firePendingIntent)
@@ -43,6 +46,22 @@ class AlarmScheduler(private val context: Context) {
             if (windowStart > System.currentTimeMillis()) {
                 val smartIntent = buildSmartStartIntent(alarm, triggerAtMillis)
                 setExact(windowStart, smartIntent)
+            }
+        }
+
+        // Pre-alarm nudge — configurable lead time (0 disables it)
+        if (alarm.preAlarmMinutes > 0) {
+            val preAt = triggerAtMillis - alarm.preAlarmMinutes * 60_000L
+            if (preAt > System.currentTimeMillis()) {
+                val preIntent = Intent(context, PreAlarmReceiver::class.java).apply {
+                    putExtra(PreAlarmReceiver.EXTRA_TITLE, alarm.title)
+                    putExtra(PreAlarmReceiver.EXTRA_MINUTES_BEFORE, alarm.preAlarmMinutes)
+                }
+                val pi = PendingIntent.getBroadcast(
+                    context, alarm.id.toPreAlarmRequestCode(), preIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+                setExact(preAt, pi)
             }
         }
     }
@@ -70,6 +89,37 @@ class AlarmScheduler(private val context: Context) {
             alarmManager.cancel(it)
             it.cancel()
         }
+        // Cancel pre-alarm PendingIntent
+        val preIntent = Intent(context, PreAlarmReceiver::class.java)
+        PendingIntent.getBroadcast(
+            context, alarmId.toPreAlarmRequestCode(), preIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        ).also {
+            alarmManager.cancel(it)
+            it.cancel()
+        }
+    }
+
+    private fun applyWeatherAdjust(triggerAtMillis: Long): Long {
+        val (enabled, mins) = com.example.rustyalarm.prefs.UserPreferences
+            .weatherAdjustSync(context)
+        if (!enabled) return triggerAtMillis
+        val prefs = context.getSharedPreferences(
+            com.example.rustyalarm.prefs.UserPreferences.MIRROR_FILE,
+            Context.MODE_PRIVATE,
+        )
+        val precip = prefs.getInt(
+            com.example.rustyalarm.weather.WeatherFetcher.PRECIP_MIRROR_KEY, -1,
+        )
+        val cachedAt = prefs.getLong(
+            com.example.rustyalarm.weather.WeatherFetcher.PRECIP_MIRROR_AT_KEY, 0L,
+        )
+        val fresh = System.currentTimeMillis() - cachedAt < 6L * 60 * 60 * 1000L
+        val shifted = if (fresh && precip > 70) triggerAtMillis - mins * 60_000L
+        else triggerAtMillis
+        // Clamp to the future so the smart-window math at the call site doesn't
+        // underflow when an alarm is scheduled <mins minutes from now.
+        return shifted.coerceAtLeast(System.currentTimeMillis() + 1_000L)
     }
 
     private fun setExact(triggerAtMillis: Long, pi: PendingIntent) {
@@ -108,6 +158,9 @@ class AlarmScheduler(private val context: Context) {
             putExtra(AlarmReceiver.EXTRA_MESSAGE, alarm.message)
             putExtra(AlarmReceiver.EXTRA_GRADUAL_WAKEUP, alarm.gradualWakeup)
             putExtra(AlarmReceiver.EXTRA_MATH_PROBLEM_COUNT, alarm.mathProblemCount)
+            putExtra(AlarmReceiver.EXTRA_ROUTINE_ITEMS, alarm.routineItems.toTypedArray())
+            alarm.youtubeUrl?.let { putExtra(AlarmReceiver.EXTRA_YOUTUBE_URL, it) }
+            putExtra(AlarmReceiver.EXTRA_ALARM_VOLUME_PERCENT, alarm.alarmVolumePercent)
             alarm.geofenceLat?.let { putExtra(AlarmReceiver.EXTRA_GEOFENCE_LAT, it) }
             alarm.geofenceLng?.let { putExtra(AlarmReceiver.EXTRA_GEOFENCE_LNG, it) }
             putExtra(AlarmReceiver.EXTRA_GEOFENCE_RADIUS, alarm.geofenceRadius)
@@ -128,8 +181,12 @@ class AlarmScheduler(private val context: Context) {
     private fun Long.toRequestCode(): Int = (this % Int.MAX_VALUE).toInt()
     private fun Long.toSmartRequestCode(): Int =
         ((this + SMART_REQUEST_OFFSET) % Int.MAX_VALUE).toInt()
+    private fun Long.toPreAlarmRequestCode(): Int =
+        ((this + PRE_ALARM_REQUEST_OFFSET) % Int.MAX_VALUE).toInt()
 
     companion object {
         private const val SMART_REQUEST_OFFSET = 500_000_000L
+        private const val PRE_ALARM_REQUEST_OFFSET = 700_000_000L
+        private const val PRE_ALARM_LEAD_MINUTES = 15L
     }
 }

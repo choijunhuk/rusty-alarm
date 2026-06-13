@@ -76,32 +76,31 @@ fun LocationChallengeCard(
                 Spacer(Modifier.width(8.dp))
                 Text("위치 권한 허용")
             }
-            return@Column
-        }
-
-        Button(
-            onClick = {
-                checking = true
-                status = null
-                checkLocation(context, targetLat, targetLng, radiusMeters,
-                    onResult = { distMeters, success ->
-                        checking = false
-                        distance = distMeters
-                        if (success) onSuccess()
-                        else status = "아직 도착하지 않았어요. 더 가까이 가세요."
-                    },
-                    onError = { msg ->
-                        checking = false
-                        status = msg
-                    }
-                )
-            },
-            enabled = !checking,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-        ) {
-            Icon(Icons.Default.LocationOn, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text(if (checking) "확인 중..." else "현재 위치 확인")
+        } else {
+            Button(
+                onClick = {
+                    checking = true
+                    status = null
+                    checkLocation(context, targetLat, targetLng, radiusMeters,
+                        onResult = { distMeters, success ->
+                            checking = false
+                            distance = distMeters
+                            if (success) onSuccess()
+                            else status = "아직 도착하지 않았어요. 더 가까이 가세요."
+                        },
+                        onError = { msg ->
+                            checking = false
+                            status = msg
+                        }
+                    )
+                },
+                enabled = !checking,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+            ) {
+                Icon(Icons.Default.LocationOn, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (checking) "확인 중..." else "현재 위치 확인")
+            }
         }
     }
 }

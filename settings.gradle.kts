@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "RustyAlarm"
 include(":app")
+include(":wear")

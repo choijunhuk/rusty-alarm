@@ -39,7 +39,6 @@ import com.example.rustyalarm.prefs.ThemeMode
 import com.example.rustyalarm.prefs.ThemePreferences
 import com.example.rustyalarm.prefs.UserPreferences
 import com.example.rustyalarm.prefs.UserProfile
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,7 +55,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val scope = remember { CoroutineScope(Dispatchers.Main) }
+    val scope = rememberCoroutineScope()
 
     var biometricOn by remember { mutableStateOf(vm.biometricEnabled()) }
     var importMessage by remember { mutableStateOf<String?>(null) }
@@ -331,6 +330,39 @@ fun SettingsScreen(
                     }
                 }
 
+                // ── Weather-adjusted wake-up ─────────
+                SectionTitle("날씨 연동 알람")
+                SettingsCard {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "비 오는 날 일찍 깨우기",
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    "강수확률 70% 이상이면 알람 ${userProfile.weatherAdjustMinutes}분 일찍",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                )
+                            }
+                            Switch(
+                                checked = userProfile.weatherAdjust,
+                                onCheckedChange = { on ->
+                                    scope.launch {
+                                        userPrefs.setWeatherAdjust(on, userProfile.weatherAdjustMinutes)
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+
                 // ── Permissions + Test ───────────────
                 SectionTitle("알람 신뢰도")
                 var permTick by remember { mutableStateOf(0) }
@@ -561,7 +593,6 @@ fun SettingsScreen(
     }
 }
 
-@Composable
 private fun oemTipFor(brand: String): String? = when {
     "xiaomi" in brand || "redmi" in brand || "poco" in brand ->
         "MIUI: 설정 → 앱 → Rusty Alarm → 권한 → '자동 시작 허용', '다른 앱 위 표시 허용', '백그라운드 활동 제한 없음'을 모두 ON 하세요."
@@ -613,7 +644,8 @@ private fun SettingsCard(content: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         content = { content() },
     )
 }

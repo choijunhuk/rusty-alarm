@@ -7,6 +7,9 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -28,10 +31,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.rustyalarm.alarm.*
-import com.example.rustyalarm.fortune.Fortune
+import com.example.rustyalarm.ui.components.YouTubePlayerCard
 import com.example.rustyalarm.rust.RustAlarmCore
 import com.example.rustyalarm.ui.components.LocationChallengeCard
 import com.example.rustyalarm.ui.components.PhotoChallengeCard
+import com.example.rustyalarm.ui.components.QrChallengeCard
+import com.example.rustyalarm.ui.components.SquatChallengeCard
+import com.example.rustyalarm.ui.components.VoiceChallengeCard
 import com.example.rustyalarm.ui.components.TetrisChallenge
 import kotlin.math.abs
 
@@ -48,9 +54,16 @@ fun AlarmRingScreen(
     geofenceLng: Double? = null,
     geofenceRadius: Int = 100,
     mathProblemCount: Int = 1,
+    routineItems: List<String> = emptyList(),
+    youtubeUrl: String? = null,
     onDismiss: () -> Unit,
     onSnooze: () -> Unit,
 ) {
+    // Routine checklist gate — alarm cannot dismiss until all items checked
+    val routineChecks = remember(routineItems) {
+        mutableStateListOf<Boolean>().apply { addAll(List(routineItems.size) { false }) }
+    }
+    val routineComplete = routineItems.isEmpty() || routineChecks.all { it }
     val timeText = RustAlarmCore.formatTime(hour, minute)
 
     val pulse = rememberInfiniteTransition(label = "pulse")
@@ -108,7 +121,7 @@ fun AlarmRingScreen(
                     val dz = abs(ev.values[2] - lz)
                     if (dx + dy + dz > threshold) {
                         shakeCount++
-                        if (shakeCount >= shakeTarget) { solved = true; onDismiss() }
+                        if (shakeCount >= shakeTarget) { solved = true; if (routineItems.isEmpty()) onDismiss() }
                     }
                     lx = ev.values[0]; ly = ev.values[1]; lz = ev.values[2]
                 }
@@ -134,7 +147,7 @@ fun AlarmRingScreen(
                     stepCount = taken
                     if (stepCount >= stepTarget) {
                         solved = true
-                        onDismiss()
+                        if (routineItems.isEmpty()) onDismiss()
                     }
                 }
                 override fun onAccuracyChanged(s: Sensor, a: Int) {}
@@ -153,7 +166,7 @@ fun AlarmRingScreen(
             mathError = false
             if (mathSolvedCount >= mathProblemCount) {
                 solved = true
-                onDismiss()
+                if (routineItems.isEmpty()) onDismiss()
             } else {
                 mathProblem = generateMathProblem(challengeType)
             }
@@ -165,14 +178,20 @@ fun AlarmRingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(
-                listOf(Color(0xFF0A0A1A), Color(0xFF1A0A2E), Color(0xFF0A0A1A))
+                listOf(
+                    Color(0xFF0F0D26),
+                    Color(0xFF2A1F5C),
+                    Color(0xFF0F0D26),
+                )
             )),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-            modifier = Modifier.padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 32.dp),
         ) {
             Icon(
                 Icons.Default.AlarmOff, null,
@@ -211,32 +230,9 @@ fun AlarmRingScreen(
                 }
             }
 
-            // ── today's fortune ──────────────────────
-            val fortune = remember { Fortune.forToday() }
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                ),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        "${fortune.emoji}  오늘의 운세",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        fortune.text,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+            // ── YouTube BGM (auto-plays the configured video/playlist) ─
+            if (!youtubeUrl.isNullOrBlank()) {
+                YouTubePlayerCard(url = youtubeUrl)
             }
 
             // ── math challenge ────────────────────────
@@ -284,7 +280,7 @@ fun AlarmRingScreen(
                         value = typedText,
                         onValueChange = { txt ->
                             typedText = txt
-                            if (txt == typingPhrase) { solved = true; onDismiss() }
+                            if (txt == typingPhrase) { solved = true; if (routineItems.isEmpty()) onDismiss() }
                         },
                         label = { Text("입력하세요") },
                         singleLine = true,
@@ -318,7 +314,37 @@ fun AlarmRingScreen(
                 ChallengeCard {
                     PhotoChallengeCard(onSuccess = {
                         solved = true
-                        onDismiss()
+                        if (routineItems.isEmpty()) onDismiss()
+                    })
+                }
+            }
+
+            // ── QR scan challenge ─────────────────────
+            if (challengeType == ChallengeType.QR_SCAN && !solved) {
+                ChallengeCard {
+                    QrChallengeCard(onSuccess = {
+                        solved = true
+                        if (routineItems.isEmpty()) onDismiss()
+                    })
+                }
+            }
+
+            // ── Voice recognition challenge ───────────
+            if (challengeType == ChallengeType.VOICE && !solved) {
+                ChallengeCard {
+                    VoiceChallengeCard(onSuccess = {
+                        solved = true
+                        if (routineItems.isEmpty()) onDismiss()
+                    })
+                }
+            }
+
+            // ── Squat challenge ───────────────────────
+            if (challengeType == ChallengeType.SQUAT && !solved) {
+                ChallengeCard {
+                    SquatChallengeCard(onSuccess = {
+                        solved = true
+                        if (routineItems.isEmpty()) onDismiss()
                     })
                 }
             }
@@ -331,7 +357,7 @@ fun AlarmRingScreen(
                             targetLat = geofenceLat,
                             targetLng = geofenceLng,
                             radiusMeters = geofenceRadius,
-                            onSuccess = { solved = true; onDismiss() },
+                            onSuccess = { solved = true; if (routineItems.isEmpty()) onDismiss() },
                         )
                     } else {
                         Text("위치가 설정되지 않은 알람이에요.",
@@ -345,7 +371,7 @@ fun AlarmRingScreen(
                 ChallengeCard {
                     TetrisChallenge(onLineCleared = {
                         solved = true
-                        onDismiss()
+                        if (routineItems.isEmpty()) onDismiss()
                     })
                 }
             }
@@ -368,20 +394,61 @@ fun AlarmRingScreen(
                 }
             }
 
+            // ── morning routine checklist (after challenge solved) ──
+            if (solved && routineItems.isNotEmpty()) {
+                ChallengeCard {
+                    Text(
+                        "☀️ 기상 후 루틴",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        "모두 체크해야 알람이 꺼져요",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                    routineItems.forEachIndexed { idx, item ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (idx < routineChecks.size) {
+                                        routineChecks[idx] = !routineChecks[idx]
+                                    }
+                                },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(
+                                checked = routineChecks.getOrElse(idx) { false },
+                                onCheckedChange = null,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                item,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(Modifier.height(4.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                val canSnooze = snoozesRemaining > 0 && routineComplete
                 OutlinedButton(
-                    onClick = onSnooze,
+                    onClick = { if (canSnooze) onSnooze() },
                     modifier = Modifier.weight(1f).height(56.dp),
-                    enabled = snoozesRemaining > 0,
+                    enabled = canSnooze,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
                 ) {
                     Text(
                         when {
+                            !routineComplete && routineItems.isNotEmpty() -> "🔒 루틴 먼저"
                             snoozesRemaining == Int.MAX_VALUE -> "5분 뒤"
                             snoozesRemaining > 0 -> "5분 뒤 ($snoozesRemaining 회 남음)"
                             else -> "스누즈 소진"
@@ -389,17 +456,22 @@ fun AlarmRingScreen(
                     )
                 }
 
+                val canDismiss = solved && routineComplete
                 Button(
-                    onClick = { if (solved) onDismiss() },
+                    onClick = { if (canDismiss) onDismiss() },
                     modifier = Modifier.weight(1f).height(56.dp),
-                    enabled = solved,
+                    enabled = canDismiss,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (solved) MaterialTheme.colorScheme.primary
+                        containerColor = if (canDismiss) MaterialTheme.colorScheme.primary
                                          else MaterialTheme.colorScheme.surfaceVariant,
                     ),
                 ) {
                     Text(
-                        if (solved) "끄기" else "🔒 먼저 챌린지를",
+                        when {
+                            !solved -> "🔒 먼저 챌린지를"
+                            !routineComplete -> "🔒 루틴 완료 필요"
+                            else -> "끄기"
+                        },
                         fontWeight = FontWeight.Bold,
                     )
                 }

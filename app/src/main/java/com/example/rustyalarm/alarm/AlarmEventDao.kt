@@ -23,6 +23,12 @@ interface AlarmEventDao {
     @Query("SELECT * FROM alarm_events ORDER BY timestamp DESC LIMIT :limit")
     fun recentFlow(limit: Int = 100): Flow<List<AlarmEvent>>
 
+    @Query("SELECT * FROM alarm_events WHERE eventType = 'DISMISSED' ORDER BY timestamp DESC LIMIT :limit")
+    suspend fun recentDismissed(limit: Int = 1): List<AlarmEvent>
+
+    @Query("SELECT COUNT(*) FROM alarm_events WHERE eventType = 'DISMISSED' AND timestamp >= :sinceMillis")
+    suspend fun dismissedCountSince(sinceMillis: Long): Int
+
     /** Count of FIRED events per day, last [days] days. */
     @Query("""
         SELECT strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch', 'localtime') AS dayKey,

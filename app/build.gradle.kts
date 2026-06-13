@@ -102,6 +102,7 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
 
     // Auth — encrypted PIN storage + biometric prompt
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
@@ -121,6 +122,18 @@ dependencies {
 
     // Fused location (location challenge)
     implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // WorkManager (weekly backups, scheduled tasks)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
+    // Wearable Data Layer (pushes next-alarm to companion watch)
+    implementation("com.google.android.gms:play-services-wearable:18.2.0")
+
+    // ML Kit barcode scanning (QR challenge)
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
+    // Coil — async image loading (YouTube thumbnails, etc.)
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")

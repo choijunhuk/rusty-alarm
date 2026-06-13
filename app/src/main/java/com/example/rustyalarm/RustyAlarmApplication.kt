@@ -5,6 +5,7 @@ import com.example.rustyalarm.alarm.AlarmDatabase
 import com.example.rustyalarm.alarm.AlarmNotificationManager
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.AlarmScheduler
+import com.example.rustyalarm.backup.BackupWorker
 import com.example.rustyalarm.pet.Pet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,5 +32,6 @@ class RustyAlarmApplication : Application() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             database.petDao().insert(Pet())
         }
+        BackupWorker.ensureScheduled(this)
     }
 }

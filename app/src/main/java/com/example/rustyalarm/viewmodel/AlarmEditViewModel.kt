@@ -52,6 +52,10 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
     fun updateMessage(text: String)             { _alarm.value = _alarm.value.copy(message = text) }
     fun updateGradualWakeup(g: Boolean)         { _alarm.value = _alarm.value.copy(gradualWakeup = g) }
     fun updateMathProblemCount(n: Int)          { _alarm.value = _alarm.value.copy(mathProblemCount = n.coerceAtLeast(1)) }
+    fun updateRoutineItems(text: String) {
+        val items = text.split("\n").map { it.trim() }.filter { it.isNotBlank() }
+        _alarm.value = _alarm.value.copy(routineItems = items)
+    }
     fun updateGeofence(lat: Double?, lng: Double?, radius: Int? = null) {
         _alarm.value = _alarm.value.copy(
             geofenceLat = lat,
@@ -66,12 +70,47 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
         _alarm.value = _alarm.value.copy(repeatDays = days.sorted())
     }
 
+    fun setRepeatDays(days: List<Int>) {
+        _alarm.value = _alarm.value.copy(repeatDays = days.distinct().sorted())
+    }
+
+    fun updateYoutubeUrl(url: String) {
+        _alarm.value = _alarm.value.copy(youtubeUrl = url.trim().ifBlank { null })
+    }
+
+    fun updateAlarmVolumePercent(percent: Int) {
+        _alarm.value = _alarm.value.copy(alarmVolumePercent = percent.coerceIn(0, 100))
+    }
+
+    fun updatePreAlarmMinutes(mins: Int) {
+        _alarm.value = _alarm.value.copy(preAlarmMinutes = mins.coerceIn(0, 60))
+    }
+
     fun save() {
         viewModelScope.launch {
             val a = _alarm.value
             repository.save(a)
             _saveToast.value = friendlyOffsetLabel(computeTriggerMillis(a))
             _saved.value = true
+        }
+    }
+
+    /** Returns a human-readable conflict message if another enabled alarm
+     *  would fire within ±5 minutes of this one on overlapping days. */
+    suspend fun checkConflict(): String? {
+        val a = _alarm.value
+        if (!a.enabled) return null
+        val mins = a.hour * 60 + a.minute
+        val others = repository.allEnabled().filter { it.id != a.id }
+        val hit = others.firstOrNull { o ->
+            val omin = o.hour * 60 + o.minute
+            val timeClose = kotlin.math.abs(omin - mins) <= 5
+            val daysOverlap = (a.repeatDays.isEmpty() && o.repeatDays.isEmpty()) ||
+                a.repeatDays.intersect(o.repeatDays.toSet()).isNotEmpty()
+            timeClose && daysOverlap
+        }
+        return hit?.let {
+            "'${it.title}' 알람과 시간이 겹쳐요 (%02d:%02d)".format(it.hour, it.minute)
         }
     }
 

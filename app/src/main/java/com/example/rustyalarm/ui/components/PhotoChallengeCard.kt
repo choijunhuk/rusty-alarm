@@ -61,58 +61,57 @@ fun PhotoChallengeCard(onSuccess: () -> Unit) {
                 Spacer(Modifier.width(8.dp))
                 Text("카메라 권한 허용")
             }
-            return@Column
-        }
-
-        AndroidView(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp)
-                .clip(RoundedCornerShape(12.dp)),
-            factory = { ctx ->
-                val previewView = PreviewView(ctx)
-                val cameraFuture: ListenableFuture<ProcessCameraProvider> =
-                    ProcessCameraProvider.getInstance(ctx)
-                cameraFuture.addListener({
-                    val provider = cameraFuture.get()
-                    val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-                    val capture = ImageCapture.Builder().build()
-                    imageCapture = capture
-                    runCatching {
-                        provider.unbindAll()
-                        provider.bindToLifecycle(
-                            lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, capture,
-                        )
-                    }
-                }, ContextCompat.getMainExecutor(ctx))
-                previewView
-            },
-        )
-
-        Button(
-            onClick = {
-                val capture = imageCapture ?: return@Button
-                val executor: Executor = ContextCompat.getMainExecutor(context)
-                capture.takePicture(
-                    executor,
-                    object : ImageCapture.OnImageCapturedCallback() {
-                        override fun onCaptureSuccess(image: ImageProxy) {
-                            image.close()
-                            onSuccess()
+        } else {
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(240.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                factory = { ctx ->
+                    val previewView = PreviewView(ctx)
+                    val cameraFuture: ListenableFuture<ProcessCameraProvider> =
+                        ProcessCameraProvider.getInstance(ctx)
+                    cameraFuture.addListener({
+                        val provider = cameraFuture.get()
+                        val preview = Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
                         }
-                        override fun onError(exception: ImageCaptureException) {
-                            // Silent: user can retry
+                        val capture = ImageCapture.Builder().build()
+                        imageCapture = capture
+                        runCatching {
+                            provider.unbindAll()
+                            provider.bindToLifecycle(
+                                lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, capture,
+                            )
                         }
-                    },
-                )
-            },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-        ) {
-            Icon(Icons.Default.Camera, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("📸 셔터")
+                    }, ContextCompat.getMainExecutor(ctx))
+                    previewView
+                },
+            )
+
+            Button(
+                onClick = {
+                    val capture = imageCapture ?: return@Button
+                    val executor: Executor = ContextCompat.getMainExecutor(context)
+                    capture.takePicture(
+                        executor,
+                        object : ImageCapture.OnImageCapturedCallback() {
+                            override fun onCaptureSuccess(image: ImageProxy) {
+                                image.close()
+                                onSuccess()
+                            }
+                            override fun onError(exception: ImageCaptureException) {
+                                // Silent: user can retry
+                            }
+                        },
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+            ) {
+                Icon(Icons.Default.Camera, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("📸 셔터")
+            }
         }
     }
 }

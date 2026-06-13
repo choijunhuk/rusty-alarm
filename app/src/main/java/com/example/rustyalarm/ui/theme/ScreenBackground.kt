@@ -19,11 +19,11 @@ fun screenBackgroundBrush(): Brush {
     val cs = MaterialTheme.colorScheme
     return if (dark) {
         Brush.verticalGradient(
-            listOf(Color(0xFF0D0D22), Color(0xFF0A0A1A)),
+            listOf(Color(0xFF0F0D26), Color(0xFF1B1840)),
         )
     } else {
         Brush.verticalGradient(
-            listOf(cs.background, cs.surfaceVariant.copy(alpha = 0.5f)),
+            listOf(cs.background, cs.tertiaryContainer.copy(alpha = 0.25f)),
         )
     }
 }
