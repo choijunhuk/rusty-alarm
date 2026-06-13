@@ -2,89 +2,115 @@
 
 알람 앱 멀티 플랫폼 포트폴리오 — Android · iOS · Wear OS.
 
----
-
-## 어떤 버전이 필요한가요?
-
-| 플랫폼 | 폴더 | 설치 가이드 | 상태 |
-|--------|------|-------------|------|
-| 📱 **Android** | [`app/`](app/) · [`rust/`](rust/) | [Android 설치 →](#-android-설치) | Production ready (Kotlin + Rust JNI) |
-| 🍎 **iOS / iPadOS** | [`ios/`](ios/) | [iOS 설치 가이드 →](ios/INSTALL_PERSONAL_DEVICE.md) | SwiftUI 포트, 무료 Apple ID 지원 |
-| ⌚ **Wear OS** | [`wear/`](wear/) | [Wear OS 설치 →](#-wear-os-설치) | Android companion, WearableDataSync |
-
-각 폴더에 들어 있는 코드는 독립적으로 빌드된다. 셋 다 받을 필요 없이 본인이 쓰는 플랫폼만 골라서 빌드하면 된다.
+[![Latest Release](https://img.shields.io/github/v/release/choijunhuk/rusty-alarm?label=Download&style=for-the-badge)](https://github.com/choijunhuk/rusty-alarm/releases/latest)
 
 ---
 
-## 📱 Android 설치
+## 📥 빠른 다운로드 (사용자용)
 
-대상: Android 7.0 (API 24) 이상.
+### 📱 Android 폰 → APK 직접 설치
 
-### 사전 준비
+가장 쉬운 방법. 폰 브라우저에서 한 번에 받기:
 
-```bash
-# Rust + cargo-ndk (도메인 로직 JNI 라이브러리)
+1. 폰에서 [**최신 Release 페이지**](https://github.com/choijunhuk/rusty-alarm/releases/latest) 열기.
+2. `rusty-alarm-android-v1.0.0.apk` 탭 → 다운로드.
+3. 처음이면 **설정 → 보안 → "출처를 알 수 없는 앱" 허용** (브라우저 또는 파일 관리자 항목).
+4. 다운로드된 APK 파일 탭 → "설치".
+5. 첫 실행시 권한 다이얼로그 전부 허용 (알람, 알림, 위치, 카메라, 마이크).
+
+**최소 요구사항**: Android 8.0 (API 26) 이상.
+
+> 디버그 서명이라 Play Store 자동 업데이트 안 됨. 새 버전은 Release 페이지에서 다시 받아야 한다.
+
+### ⌚ Wear OS 워치 → 페어링 폰 통해 사이드로드
+
+워치 앱은 페어링된 폰에 Android 앱이 먼저 설치되어 있어야 한다.
+
+1. 위의 Android 앱부터 설치.
+2. [`rusty-alarm-wear-v1.0.0.apk`](https://github.com/choijunhuk/rusty-alarm/releases/latest) 다운.
+3. 워치 디버깅 켜기: 워치 설정 → 시스템 → 정보 → 빌드 번호 7번 탭 → 개발자 옵션 → ADB 디버깅 ON + Wi-Fi/Bluetooth 디버깅 ON.
+4. 컴퓨터에서:
+   ```sh
+   # 폰을 통한 워치 디버깅 (가장 흔함)
+   adb forward tcp:4444 tcp:5555      # 폰이 워치로 포워드
+   adb connect localhost:4444
+   adb install rusty-alarm-wear-v1.0.0.apk
+   ```
+   또는 Wi-Fi 디버깅으로 워치에 직접 연결:
+   ```sh
+   adb connect <워치_IP>:5555
+   adb install rusty-alarm-wear-v1.0.0.apk
+   ```
+
+**최소 요구사항**: Wear OS 3.0 이상.
+
+### 🍎 iOS / iPadOS → Xcode 직접 빌드 (무료 Apple ID)
+
+iOS는 사전 빌드 IPA 배포가 불가능하다 (Personal Team 서명은 본인 기기 UDID 만 통과). 본인 Mac + iPhone 만 있으면 5분 안에 설치 가능:
+
+1. **소스 받기**: `git clone https://github.com/choijunhuk/rusty-alarm.git`
+2. **사전 도구**:
+   ```sh
+   brew install xcodegen
+   ```
+3. **프로젝트 생성**:
+   ```sh
+   cd rusty-alarm/ios
+   xcodegen generate
+   open RustyAlarm.xcodeproj
+   ```
+4. **Xcode 에서**:
+   - 좌측 RustyAlarm 타깃 → Signing & Capabilities → Team 에 본인 Apple ID 선택 (Personal Team).
+   - Widget 타깃도 동일 처리.
+   - iPhone 연결 → 좌측 상단 디바이스 드롭다운에서 본인 iPhone 선택 → ⌘R.
+5. **iPhone 에서**: 설정 → 일반 → VPN 및 기기 관리 → 본인 Apple ID → "신뢰".
+
+**최소 요구사항**: macOS Tahoe (26.x) + Xcode 26+, iOS 17.0 이상.
+
+자세한 단계 + 7일 재서명 사이클 + 무료 ID 한계는 **[`ios/INSTALL_PERSONAL_DEVICE.md`](ios/INSTALL_PERSONAL_DEVICE.md)** 참고.
+
+---
+
+## 🔧 개발자용 — 소스에서 빌드
+
+세 플랫폼 전부 한 저장소에 있다. 본인이 작업할 플랫폼만 빌드하면 된다.
+
+### Android + Wear (Kotlin · Rust JNI · Gradle)
+
+```sh
+# 사전: Rust + Android NDK + cargo-ndk
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+rustup target add aarch64-linux-android x86_64-linux-android
 cargo install cargo-ndk
-```
 
-### 빌드
-
-```bash
-# 1. Rust JNI 라이브러리 빌드
+# 1. Rust JNI 라이브러리 (도메인 로직)
 cd rust/alarm_core
-cargo ndk -t arm64-v8a -t x86_64 -o ../../app/src/main/jniLibs build
+cargo ndk -t arm64-v8a -t x86_64 -o ../../app/src/main/jniLibs build --release
 
-# 2. Android Studio에서 rusty-alarm/ 폴더 Open → Run 'app'
+# 2. APK 빌드
+cd ../..
+./gradlew :app:assembleDebug          # Android 폰
+./gradlew :wear:assembleDebug         # Wear OS
+
+# APK 위치
+# app/build/outputs/apk/debug/app-debug.apk
+# wear/build/outputs/apk/debug/wear-debug.apk
 ```
 
-> Rust 라이브러리 없이도 실행은 된다. `RustAlarmCore.isAvailable == false` 면 Kotlin 폴백.
+또는 Android Studio 에서 `rusty-alarm/` 폴더 Open → Run 'app' / Run 'wear'.
 
-### 권한 (Android 12+)
+> Rust 라이브러리 없이도 앱은 실행된다. `RustAlarmCore.isAvailable == false` 면 Kotlin 폴백.
 
-- **알람 및 리마인더** (SCHEDULE_EXACT_ALARM): 설정 → 앱 → Rusty Alarm.
-- **알림** (POST_NOTIFICATIONS, Android 13+): 최초 실행시 다이얼로그.
+### iOS (SwiftUI · XcodeGen)
 
-자세한 권한 매트릭스는 [`app/README.md`](app/) 참고 (없으면 본 README 하단 Android 상세 섹션).
-
----
-
-## 🍎 iOS 설치
-
-대상: iOS 17.0 이상.
-
-### 빠른 시작
-
-```bash
+```sh
 cd ios
-brew install xcodegen        # 처음 한 번만
-xcodegen generate            # RustyAlarm.xcodeproj 생성
+brew install xcodegen
+xcodegen generate
 open RustyAlarm.xcodeproj
 ```
 
-Xcode 에서:
-1. **Signing & Capabilities** → 본인 Apple ID Personal Team 선택 (메인 + Widget 타깃).
-2. iPhone 연결 → ⌘R.
-
-자세한 단계 + 무료 Apple ID 한계 + 7일 재서명 사이클은 **[`ios/INSTALL_PERSONAL_DEVICE.md`](ios/INSTALL_PERSONAL_DEVICE.md)** 참고.
-
-> iOS는 무음모드 우회가 불가능하다 (Critical Alerts entitlement은 $99 유료 + Apple 수동 승인). 코드는 iOS 26 AlarmKit 듀얼 지원 (`Sources/Persistence/AlarmKitBridge.swift`).
-
----
-
-## ⌚ Wear OS 설치
-
-대상: Wear OS 3.0 이상. Android 컴패니언 앱과 페어링 필요.
-
-### 빌드
-
-```bash
-# Android 앱과 동일한 Android Studio 프로젝트 안에서:
-# Run 구성 → wear 타깃 선택 → Wear OS 에뮬레이터 또는 워치 선택
-```
-
-페어링된 폰에 Android 앱이 먼저 설치되어 있어야 다음 알람 데이터를 받는다 (`WearableDataSync`).
+상세는 위 [iOS 다운로드 섹션](#-ios--ipados--xcode-직접-빌드-무료-apple-id) 참고.
 
 ---
 
@@ -92,7 +118,7 @@ Xcode 에서:
 
 ```
 rusty-alarm/
-├── app/        # Android (Kotlin + Compose) — Rust JNI 도메인 로직
+├── app/        # Android (Kotlin + Compose) — Rust JNI 도메인 로직 호출
 ├── ios/        # iOS (SwiftUI) — Widget + WatchApp 포함
 ├── wear/       # Wear OS (Kotlin + Compose for Wear)
 ├── rust/       # 공유 도메인 로직 (cargo crate)
