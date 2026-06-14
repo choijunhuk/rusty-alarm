@@ -44,6 +44,25 @@ struct AlarmEditView: View {
                     }
                 }
 
+                Section("기상 성공률") {
+                    let profile = WakeupCoaching.profile(for: alarm)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(profile.title) · \(profile.level.label)")
+                            .font(.subheadline).bold()
+                        Text(profile.recommendation)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(WakeupPreset.allCases) { preset in
+                        Button(preset.label) {
+                            alarm = WakeupCoaching.apply(preset, to: alarm)
+                        }
+                    }
+                    Text("프리셋은 현재 알람에 바로 반영되고, 저장을 눌러야 적용돼요.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("소리") {
                     Toggle("알람 소리", isOn: $alarm.soundEnabled)
                     Toggle("진동", isOn: $alarm.vibrate)

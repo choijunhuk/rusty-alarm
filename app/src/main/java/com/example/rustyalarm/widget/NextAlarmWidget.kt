@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.ComponentName
+import androidx.compose.ui.graphics.Color
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.action.actionStartActivity
@@ -116,11 +117,11 @@ private fun computeStreak(keysDesc: List<String>): Int {
 }
 
 // Brand palette — midnight violet / coral / gold
-private const val BG_HEX        = "#1B1840"
-private const val ACCENT_HEX    = "#9B8AFF"   // primary
-private const val ACCENT2_HEX   = "#FFB088"   // secondary
-private const val TEXT_HEX      = "#FFFFFF"
-private const val MUTED_HEX     = "#CAC2E8"
+private val WidgetBg = ColorProvider(Color(0xFF1B1840))
+private val WidgetAccent = ColorProvider(Color(0xFF9B8AFF))
+private val WidgetAccent2 = ColorProvider(Color(0xFFFFB088))
+private val WidgetText = ColorProvider(Color(0xFFFFFFFF))
+private val WidgetMuted = ColorProvider(Color(0xFFCAC2E8))
 
 @Composable
 private fun WidgetContent(title: String?, triggerAt: Long?, streakDays: Int) {
@@ -130,7 +131,7 @@ private fun WidgetContent(title: String?, triggerAt: Long?, streakDays: Int) {
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(ColorProvider(android.graphics.Color.parseColor(BG_HEX)))
+            .background(WidgetBg)
             .cornerRadius(20.dp)
             .padding(14.dp)
             .clickable(openApp),
@@ -140,7 +141,7 @@ private fun WidgetContent(title: String?, triggerAt: Long?, streakDays: Int) {
             Text(
                 text = "다음 알람",
                 style = TextStyle(
-                    color = ColorProvider(android.graphics.Color.parseColor(ACCENT_HEX)),
+                    color = WidgetAccent,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                 ),
@@ -149,7 +150,7 @@ private fun WidgetContent(title: String?, triggerAt: Long?, streakDays: Int) {
                 Text(
                     text = "없음",
                     style = TextStyle(
-                        color = ColorProvider(android.graphics.Color.parseColor(MUTED_HEX)),
+                        color = WidgetMuted,
                         fontSize = 20.sp,
                     ),
                 )
@@ -159,7 +160,7 @@ private fun WidgetContent(title: String?, triggerAt: Long?, streakDays: Int) {
                 Text(
                     text = time,
                     style = TextStyle(
-                        color = ColorProvider(android.graphics.Color.parseColor(TEXT_HEX)),
+                        color = WidgetText,
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
                     ),
@@ -167,7 +168,7 @@ private fun WidgetContent(title: String?, triggerAt: Long?, streakDays: Int) {
                 Text(
                     text = day,
                     style = TextStyle(
-                        color = ColorProvider(android.graphics.Color.parseColor(MUTED_HEX)),
+                        color = WidgetMuted,
                         fontSize = 11.sp,
                     ),
                 )
@@ -175,7 +176,7 @@ private fun WidgetContent(title: String?, triggerAt: Long?, streakDays: Int) {
                     Text(
                         text = title,
                         style = TextStyle(
-                            color = ColorProvider(android.graphics.Color.parseColor(MUTED_HEX)),
+                            color = WidgetMuted,
                             fontSize = 11.sp,
                         ),
                     )
@@ -183,7 +184,7 @@ private fun WidgetContent(title: String?, triggerAt: Long?, streakDays: Int) {
                 Text(
                     text = countdownLabel(triggerAt - System.currentTimeMillis()),
                     style = TextStyle(
-                        color = ColorProvider(android.graphics.Color.parseColor(ACCENT_HEX)),
+                        color = WidgetAccent,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                     ),
@@ -201,7 +202,7 @@ private fun WidgetContent(title: String?, triggerAt: Long?, streakDays: Int) {
                 Text(
                     text = "$streakDays 일 연속",
                     style = TextStyle(
-                        color = ColorProvider(android.graphics.Color.parseColor(ACCENT2_HEX)),
+                        color = WidgetAccent2,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                     ),

@@ -105,10 +105,53 @@ fun ReportScreen(
                     MetricBox(
                         Icons.Default.TrendingUp,
                         "기상 완료율",
-                        if (report.fired == 0) "—"
-                        else "${report.dismissed * 100 / maxOf(1, report.fired)}%",
+                        if (report.fired == 0) "—" else "${report.completionRatePercent}%",
                         Modifier.weight(1f),
                     )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    MetricBox(
+                        Icons.Default.Schedule,
+                        "평균 끄기 시간",
+                        report.avgResponseLabel,
+                        Modifier.weight(1f),
+                    )
+                    MetricBox(
+                        Icons.Default.TrendingUp,
+                        "스누즈 비율",
+                        if (report.fired == 0) "—" else "${report.snoozeRatePercent}%",
+                        Modifier.weight(1f),
+                    )
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text("다음 개선 액션",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.secondary)
+                        report.insights.take(3).forEach { insight ->
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    insight.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    insight.detail,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                                )
+                            }
+                        }
+                    }
                 }
 
                 Card(

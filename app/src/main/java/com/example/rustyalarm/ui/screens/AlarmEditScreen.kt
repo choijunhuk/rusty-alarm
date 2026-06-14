@@ -51,6 +51,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.ChallengeType
+import com.example.rustyalarm.alarm.WakeupPreset
+import com.example.rustyalarm.alarm.WakeupPresetApplier
 import com.example.rustyalarm.ui.components.DaySelector
 import com.example.rustyalarm.ui.components.TimePickerSection
 import com.example.rustyalarm.viewmodel.AlarmEditViewModel
@@ -245,6 +247,43 @@ fun AlarmEditScreen(
                         }
                     }
                 }
+            }
+
+            // ── Real-use success profile ─────────────
+            SectionCard(
+                title = "기상 성공률",
+                icon = Icons.Default.NotificationsActive,
+                initiallyExpanded = true,
+            ) {
+                val profile = remember(alarm) { WakeupPresetApplier.profile(alarm) }
+                Text(
+                    "${profile.title} · ${profile.level.label}",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    profile.recommendation,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    WakeupPreset.entries.forEach { preset ->
+                        AssistChip(
+                            onClick = { vm.applyWakeupPreset(preset) },
+                            label = { Text(preset.label) },
+                        )
+                    }
+                }
+                Text(
+                    "프리셋은 현재 알람에 바로 반영되고, 저장을 눌러야 적용돼요.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                )
             }
 
             // ── 기본 정보 ──────────────────────────────

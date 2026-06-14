@@ -9,6 +9,8 @@ struct ReportView: View {
             VStack(spacing: 14) {
                 streakCard
                 metricRow
+                responseMetricRow
+                insightCard
                 summaryCard
                 heatmapCard
             }
@@ -53,9 +55,36 @@ struct ReportView: View {
                 title: "기상 완료율",
                 value: report.fired == 0
                     ? "—"
-                    : "\(report.dismissed * 100 / max(1, report.fired))%",
+                    : "\(report.completionRatePercent)%",
             )
         }
+    }
+
+    private var responseMetricRow: some View {
+        HStack(spacing: 12) {
+            MetricBox(icon: "timer", title: "평균 끄기 시간", value: report.avgResponseLabel)
+            MetricBox(
+                icon: "arrow.triangle.2.circlepath",
+                title: "스누즈 비율",
+                value: report.fired == 0 ? "—" : "\(report.snoozeRatePercent)%",
+            )
+        }
+    }
+
+    private var insightCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("다음 개선 액션").font(.subheadline).foregroundStyle(.secondary)
+            ForEach(report.insights.prefix(3)) { insight in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(insight.title).font(.subheadline).bold()
+                    Text(insight.detail).font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 
     private var summaryCard: some View {

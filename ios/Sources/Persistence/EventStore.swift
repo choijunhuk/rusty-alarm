@@ -6,10 +6,14 @@ struct WeeklyReport {
     var dismissed: Int = 0
     var snoozed: Int = 0
     var avgWakeupHHMM: String = "—"
+    var avgResponseLabel: String = "—"
+    var completionRatePercent: Int = 0
+    var snoozeRatePercent: Int = 0
     var streakDays: Int = 0
     var challengesCompleted: Int = 0
     /// (yyyy-MM-dd, count) for last 30 days, oldest first.
     var heatmap: [(String, Int)] = []
+    var insights: [WakeupInsight] = []
 }
 
 final class EventStore: ObservableObject {
@@ -51,6 +55,8 @@ final class EventStore: ObservableObject {
         let fired = week.filter { $0.type == .fired }.count
         let dismissed = week.filter { $0.type == .dismissed }.count
         let snoozed = week.filter { $0.type == .snoozed }.count
+        let completionRate = fired == 0 ? 0 : dismissed * 100 / fired
+        let snoozeRate = fired == 0 ? 0 : snoozed * 100 / fired
         let challengesCompleted = week.filter {
             $0.type == .dismissed && $0.challengeType != nil && $0.challengeType != ChallengeType.none
         }.count
@@ -65,8 +71,27 @@ final class EventStore: ObservableObject {
             let average = mins.reduce(0, +) / mins.count
             return String(format: "%02d:%02d", average / 60, average % 60)
         }()
+        let responseValues = dismissEvents.compactMap(\.responseSec)
+        let avgResponseSec = responseValues.isEmpty
+            ? 0
+            : responseValues.reduce(0, +) / responseValues.count
+        let avgResponseLabel: String = {
+            guard avgResponseSec > 0 else { return "—" }
+            if avgResponseSec < 60 { return "\(avgResponseSec)초" }
+            return "\(avgResponseSec / 60)분 \(avgResponseSec % 60)초"
+        }()
 
         let streak = computeStreak()
+        let insights = ReportInsightEngine.insights(
+            for: WakeupInsightInput(
+                fired: fired,
+                dismissed: dismissed,
+                snoozed: snoozed,
+                avgResponseSec: avgResponseSec,
+                challengesCompleted: challengesCompleted,
+                streakDays: streak
+            )
+        )
 
         // Heatmap last 30 days
         let fmt = DateFormatter()
@@ -86,9 +111,13 @@ final class EventStore: ObservableObject {
             dismissed: dismissed,
             snoozed: snoozed,
             avgWakeupHHMM: avg,
+            avgResponseLabel: avgResponseLabel,
+            completionRatePercent: completionRate,
+            snoozeRatePercent: snoozeRate,
             streakDays: streak,
             challengesCompleted: challengesCompleted,
             heatmap: heat,
+            insights: insights,
         )
     }
 

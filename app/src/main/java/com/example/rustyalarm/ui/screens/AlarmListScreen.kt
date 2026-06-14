@@ -43,7 +43,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rustyalarm.alarm.Alarm
+import com.example.rustyalarm.alarm.AlarmReliability
 import com.example.rustyalarm.alarm.AlarmRepository
+import com.example.rustyalarm.alarm.ReliabilityIssue
 import com.example.rustyalarm.ui.components.AlarmCard
 import com.example.rustyalarm.viewmodel.AlarmListViewModel
 import java.text.SimpleDateFormat
@@ -97,6 +99,9 @@ fun AlarmListScreen(
                 if (t > 0L) a to t else null
             }
             .minByOrNull { it.second }
+    }
+    val nextAlarmIssues = remember(nextAlarm?.first) {
+        nextAlarm?.first?.let { AlarmReliability.alarmIssues(it) }.orEmpty()
     }
     val lastDismissedAt by vm.lastDismissedAt.collectAsStateWithLifecycle()
     val weather by vm.weather.collectAsStateWithLifecycle()
@@ -184,6 +189,7 @@ fun AlarmListScreen(
                         lastDismissedAt = lastDismissedAt,
                         weather = weather,
                         weeklyDismissed = weeklyDismissed,
+                        nextAlarmIssues = nextAlarmIssues,
                         onRecordBedtime = { vm.recordBedtime() },
                     )
                 }
@@ -317,6 +323,7 @@ private fun NextAlarmHero(
     lastDismissedAt: Long?,
     weather: com.example.rustyalarm.weather.Weather?,
     weeklyDismissed: Int = 0,
+    nextAlarmIssues: List<ReliabilityIssue> = emptyList(),
     onRecordBedtime: () -> Unit = {},
 ) {
     Card(
@@ -440,6 +447,18 @@ private fun NextAlarmHero(
                             text = "이번 주 ${weeklyDismissed}",
                         )
                     }
+                    HeroPill(
+                        icon = Icons.Default.Alarm,
+                        text = if (nextAlarmIssues.isEmpty()) "실사용 안정"
+                               else "보강 ${nextAlarmIssues.size}개",
+                    )
+                }
+                nextAlarmIssues.firstOrNull()?.let { issue ->
+                    Text(
+                        text = issue.title,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.62f),
+                    )
                 }
             }
         }

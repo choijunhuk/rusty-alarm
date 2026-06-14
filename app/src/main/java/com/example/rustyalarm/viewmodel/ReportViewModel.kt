@@ -19,11 +19,15 @@ data class WeeklyReport(
     val dismissed: Int = 0,
     val snoozed: Int = 0,
     val avgWakeupHHMM: String = "—",
+    val avgResponseLabel: String = "—",
+    val completionRatePercent: Int = 0,
+    val snoozeRatePercent: Int = 0,
     val streakDays: Int = 0,
     val challengesCompleted: Int = 0,
     val ready: Boolean = false,
     /** Map<yyyy-MM-dd, dismissedCount> for the last 30 days, oldest first. */
     val heatmap: List<Pair<String, Int>> = emptyList(),
+    val insights: List<WakeupInsight> = emptyList(),
 )
 
 class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
@@ -45,9 +49,10 @@ class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
             val snoozed    = events.count { it.eventType == AlarmEventType.SNOOZED.name }
             val challengesCompleted = events.count {
                 it.eventType == AlarmEventType.DISMISSED.name &&
-                    it.challengeType != null &&
                     it.challengeType != "NONE"
             }
+            val completionRate = if (fired == 0) 0 else dismissed * 100 / fired
+            val snoozeRate = if (fired == 0) 0 else snoozed * 100 / fired
 
             val avg = events
                 .filter { it.eventType == AlarmEventType.DISMISSED.name }
@@ -58,8 +63,30 @@ class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
             val avgWakeup = avg?.let {
                 "%02d:%02d".format(it / 60, it % 60)
             } ?: "—"
+            val avgResponseSec = events
+                .filter { it.eventType == AlarmEventType.DISMISSED.name }
+                .mapNotNull { it.responseSeconds }
+                .takeIf { it.isNotEmpty() }
+                ?.average()
+                ?.toLong()
+                ?: 0L
+            val avgResponseLabel = when {
+                avgResponseSec <= 0L -> "—"
+                avgResponseSec < 60L -> "${avgResponseSec}초"
+                else -> "${avgResponseSec / 60}분 ${avgResponseSec % 60}초"
+            }
 
             val streak = computeStreak(eventDao.dismissedDayKeys())
+            val insights = ReportInsightEngine.insights(
+                WakeupInsightInput(
+                    fired = fired,
+                    dismissed = dismissed,
+                    snoozed = snoozed,
+                    avgResponseSec = avgResponseSec,
+                    challengesCompleted = challengesCompleted,
+                    streakDays = streak,
+                ),
+            )
 
             // Heatmap — last 30 days of DISMISSED counts
             val cal30 = Calendar.getInstance()
@@ -86,10 +113,14 @@ class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
                 dismissed = dismissed,
                 snoozed = snoozed,
                 avgWakeupHHMM = avgWakeup,
+                avgResponseLabel = avgResponseLabel,
+                completionRatePercent = completionRate,
+                snoozeRatePercent = snoozeRate,
                 streakDays = streak,
                 challengesCompleted = challengesCompleted,
                 ready = true,
                 heatmap = heatmap,
+                insights = insights,
             )
         }
     }

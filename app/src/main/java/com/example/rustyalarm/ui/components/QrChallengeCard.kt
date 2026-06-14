@@ -34,7 +34,7 @@ import java.util.concurrent.Executors
  * Camera viewfinder that fires [onSuccess] the first time any QR code is
  * detected in frame. Optionally constrain to a target string via [requiredValue].
  */
-@OptIn(ExperimentalGetImage::class)
+@androidx.annotation.OptIn(ExperimentalGetImage::class)
 @Composable
 fun QrChallengeCard(
     requiredValue: String? = null,

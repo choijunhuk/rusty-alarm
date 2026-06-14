@@ -29,9 +29,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.rustyalarm.alarm.Alarm
+import com.example.rustyalarm.alarm.AlarmReliability
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.AlarmScheduler
 import com.example.rustyalarm.alarm.Permissions
+import com.example.rustyalarm.alarm.ReliabilityDiagnostic
 import com.example.rustyalarm.alarm.AlarmSchedulerSnooze
 import com.example.rustyalarm.auth.AuthViewModel
 import com.example.rustyalarm.auth.UnlockResult
@@ -68,6 +70,7 @@ fun SettingsScreen(
     val hasPin by vm.hasPin.collectAsStateWithLifecycle()
     val throttleSec by vm.throttleSeconds.collectAsStateWithLifecycle()
     val themeMode by themePrefs.mode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
+    val alarms by repository.alarms.collectAsStateWithLifecycle(initialValue = emptyList())
 
     // Tick down throttle while the disable dialog is open
     LaunchedEffect(disableLockDialog, throttleSec) {
@@ -365,10 +368,19 @@ fun SettingsScreen(
 
                 // ── Permissions + Test ───────────────
                 SectionTitle("알람 신뢰도")
-                var permTick by remember { mutableStateOf(0) }
+                var permTick by remember { mutableIntStateOf(0) }
                 val perms = remember(permTick) { Permissions.status(context) }
+                val reliability = remember(perms, alarms) {
+                    AlarmReliability.diagnose(
+                        permissions = perms,
+                        enabledAlarmCount = alarms.count { it.enabled },
+                        nextAlarm = alarms.firstOrNull { it.enabled },
+                    )
+                }
                 SettingsCard {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        ReliabilitySummary(reliability)
+                        Spacer(Modifier.height(12.dp))
                         PermissionRow(
                             label = "알림 권한",
                             ok = perms.notifications,
@@ -605,6 +617,61 @@ private fun oemTipFor(brand: String): String? = when {
     "vivo" in brand ->
         "Vivo: i-Manager → 앱 관리 → Autostart 허용, 그리고 '높은 백그라운드 전원 사용 허용' ON."
     else -> null
+}
+
+@Composable
+private fun ReliabilitySummary(diagnostic: ReliabilityDiagnostic) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "실사용 신뢰도 ${diagnostic.score}점",
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    diagnostic.headline,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                )
+            }
+            AssistChip(
+                onClick = {},
+                label = { Text(diagnostic.level.label) },
+                enabled = false,
+            )
+        }
+        LinearProgressIndicator(
+            progress = { diagnostic.score / 100f },
+            modifier = Modifier.fillMaxWidth().height(8.dp),
+            color = when (diagnostic.level) {
+                com.example.rustyalarm.alarm.ReliabilityLevel.READY ->
+                    MaterialTheme.colorScheme.primary
+                com.example.rustyalarm.alarm.ReliabilityLevel.CAUTION ->
+                    MaterialTheme.colorScheme.tertiary
+                com.example.rustyalarm.alarm.ReliabilityLevel.BLOCKED ->
+                    MaterialTheme.colorScheme.error
+            },
+        )
+        diagnostic.issues.take(3).forEach { issue ->
+            Text(
+                "• ${issue.title}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+            )
+        }
+        if (diagnostic.issues.isEmpty()) {
+            Text(
+                diagnostic.strengths.take(3).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
 }
 
 @Composable

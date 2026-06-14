@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.ChallengeType
+import com.example.rustyalarm.alarm.WakeupPreset
+import com.example.rustyalarm.alarm.WakeupPresetApplier
 import com.example.rustyalarm.rust.RustAlarmCore
 import java.util.Calendar
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,6 +86,10 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
 
     fun updatePreAlarmMinutes(mins: Int) {
         _alarm.value = _alarm.value.copy(preAlarmMinutes = mins.coerceIn(0, 60))
+    }
+
+    fun applyWakeupPreset(preset: WakeupPreset) {
+        _alarm.value = WakeupPresetApplier.apply(_alarm.value, preset)
     }
 
     fun save() {
