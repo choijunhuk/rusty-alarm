@@ -1,5 +1,7 @@
 package com.example.rustyalarm.viewmodel
 
+import com.example.rustyalarm.alarm.WakeupPreset
+
 data class WakeupInsightInput(
     val fired: Int,
     val dismissed: Int,
@@ -13,6 +15,12 @@ data class WakeupInsight(
     val id: String,
     val title: String,
     val detail: String,
+    val action: WakeupInsightAction? = null,
+)
+
+data class WakeupInsightAction(
+    val label: String,
+    val preset: WakeupPreset,
 )
 
 object ReportInsightEngine {
@@ -43,6 +51,7 @@ object ReportInsightEngine {
                 id = "high_snooze",
                 title = "스누즈가 많은 편이에요",
                 detail = "스누즈를 1-2회로 제한하고 챌린지 난이도를 한 단계 올려보세요.",
+                action = WakeupInsightAction("지각 방지 모드 적용", WakeupPreset.ON_TIME),
             )
         }
 
@@ -51,6 +60,7 @@ object ReportInsightEngine {
                 id = "no_challenge",
                 title = "챌린지를 하나 켜보세요",
                 detail = "무의식적으로 끄는 일이 있다면 수학 쉬움이나 타이핑 챌린지가 부담이 적어요.",
+                action = WakeupInsightAction("강제 기상 모드 적용", WakeupPreset.FORCED),
             )
         }
 
@@ -59,6 +69,7 @@ object ReportInsightEngine {
                 id = "slow_response",
                 title = "끄기까지 시간이 오래 걸려요",
                 detail = "미리알림이나 단계적 알람을 켜면 갑작스러운 기상 부담을 줄일 수 있어요.",
+                action = WakeupInsightAction("편안한 기상 모드 적용", WakeupPreset.COMFORTABLE),
             )
         }
 

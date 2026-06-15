@@ -16,7 +16,15 @@ final class WatchSync: NSObject, WCSessionDelegate {
         session.activate()
     }
 
-    func pushNext(triggerAt: Date?, title: String?, streak: Int) {
+    func pushNext(
+        triggerAt: Date?,
+        title: String?,
+        streak: Int,
+        readiness: String? = nil,
+        canSnooze: Bool = false,
+        canDismiss: Bool = false,
+        requiresPhone: Bool = false
+    ) {
         // App Group defaults (widget consumes these)
         let defaults = UserDefaults(suiteName: "group.com.example.rustyalarm")
         defaults?.set(triggerAt?.timeIntervalSince1970 ?? 0.0, forKey: "next.alarm.ts")
@@ -29,6 +37,10 @@ final class WatchSync: NSObject, WCSessionDelegate {
             "trigger_at": triggerAt?.timeIntervalSince1970 ?? 0,
             "title": title ?? "",
             "streak": streak,
+            "readiness": readiness ?? "",
+            "can_snooze": canSnooze,
+            "can_dismiss": canDismiss,
+            "requires_phone": requiresPhone,
         ]
         try? WCSession.default.updateApplicationContext(context)
     }

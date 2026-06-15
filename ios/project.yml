@@ -62,6 +62,18 @@ targets:
         SDKROOT: watchos
         TARGETED_DEVICE_FAMILY: "4"
 
+  RustyAlarmTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Tests
+    dependencies:
+      - target: RustyAlarm
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.rustyalarm.tests
+
 schemes:
   RustyAlarm:
     build:
@@ -70,6 +82,8 @@ schemes:
     run:
       config: Debug
     test:
+      targets:
+        - RustyAlarmTests
       config: Debug
     profile:
       config: Release

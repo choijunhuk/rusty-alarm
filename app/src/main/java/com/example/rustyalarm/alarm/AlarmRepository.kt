@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
+import com.example.rustyalarm.rust.RustAlarmCore
 
 class AlarmRepository(
     private val dao: AlarmDao,
@@ -48,6 +49,12 @@ class AlarmRepository(
                 context = ctx,
                 triggerAtMillis = next?.second,
                 title = next?.first?.title,
+                readinessLabel = AlarmReliability.diagnose(
+                    permissions = Permissions.status(ctx),
+                    enabledAlarmCount = all.size,
+                    nextAlarm = next?.first,
+                ).level.label,
+                watchAccess = next?.first?.let { WatchControlPolicy.access(it, snoozesUsed = 0) },
             )
         }
     }
@@ -55,6 +62,21 @@ class AlarmRepository(
     val groups: Flow<List<String>> = dao.distinctGroupsFlow()
 
     suspend fun allEnabled(): List<Alarm> = dao.getAllEnabled().map { it.toAlarm() }
+
+    suspend fun applyPresetToNextEnabled(preset: WakeupPreset): Alarm? {
+        val now = System.currentTimeMillis()
+        val next = allEnabled().minByOrNull { alarm ->
+            alarm.specificDate ?: RustAlarmCore.calculateNextAlarmTimestamp(
+                now,
+                alarm.hour,
+                alarm.minute,
+                alarm.repeatDays.toIntArray(),
+            )
+        } ?: return null
+        val updated = WakeupPresetApplier.apply(next, preset)
+        save(updated)
+        return updated
+    }
 
     /** Most-recent DISMISSED event timestamp, or null if none. */
     suspend fun lastDismissedAt(): Long? = runCatching {
@@ -196,4 +218,3 @@ class AlarmRepository(
         return count
     }
 }
-

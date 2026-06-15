@@ -143,6 +143,9 @@ rusty-alarm/
 | 잠금화면 위젯 | ✅ Glance | ✅ WidgetKit | n/a |
 | 컴패니언 워치 | ✅ Wearable Data Layer | ✅ WatchConnectivity | 본체 |
 | 백업 (주간 자동) | ✅ WorkManager | ✅ BGTaskScheduler | ❌ |
+| 기상 모드 (편안한/지각 방지/강제) | ✅ | ✅ | 상태 표시 |
+| 리포트 추천 즉시 적용 | ✅ | ✅ | ❌ |
+| 다음 알람 준비 상태 | ✅ | ✅ | ✅ |
 
 ---
 
@@ -155,6 +158,16 @@ rusty-alarm/
 | 백그라운드 | `BroadcastReceiver` · `WorkManager` | `BGTaskScheduler` |
 | 로컬 저장 | Room (SQLite) | UserDefaults + App Group |
 | 도메인 로직 | Rust crate via JNI | SwiftUI 네이티브 (Rust 미사용) |
+
+## 기상 여정
+
+알람 편집에서 사용 목적에 맞는 기상 모드를 선택할 수 있다.
+
+- **편안한 기상**: 미리알림, 단계적 알람, 최대 3회 스누즈로 부드럽게 깨운다.
+- **지각 방지**: 낮은 부담의 타이핑 챌린지와 1회 스누즈로 일정 준수를 돕는다.
+- **강제 기상**: 챌린지, 높은 음량, 기상 루틴으로 무의식적인 알람 해제를 막는다.
+
+주간 리포트는 스누즈 비율과 반응 시간을 바탕으로 다음 활성 알람에 적용할 수 있는 모드를 제안한다. Wear OS와 Apple Watch에는 다음 알람 준비 상태와 폰 챌린지 필요 여부가 표시된다.
 
 ---
 

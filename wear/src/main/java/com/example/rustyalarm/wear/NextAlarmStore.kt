@@ -10,6 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 data class NextAlarmState(
     val triggerAtMillis: Long? = null,
     val title: String? = null,
+    val readinessLabel: String? = null,
+    val canSnooze: Boolean = false,
+    val canDismiss: Boolean = false,
+    val requiresPhone: Boolean = false,
 ) {
     val timeText: String? = triggerAtMillis?.let { formatTime(it) }
     val untilText: String? = triggerAtMillis?.let {
@@ -22,7 +26,21 @@ object NextAlarmStore {
     private val _state = MutableStateFlow(NextAlarmState())
     val state: StateFlow<NextAlarmState> = _state
 
-    fun update(triggerAtMillis: Long?, title: String?) {
-        _state.value = NextAlarmState(triggerAtMillis = triggerAtMillis, title = title)
+    fun update(
+        triggerAtMillis: Long?,
+        title: String?,
+        readinessLabel: String?,
+        canSnooze: Boolean,
+        canDismiss: Boolean,
+        requiresPhone: Boolean,
+    ) {
+        _state.value = NextAlarmState(
+            triggerAtMillis = triggerAtMillis,
+            title = title,
+            readinessLabel = readinessLabel,
+            canSnooze = canSnooze,
+            canDismiss = canDismiss,
+            requiresPhone = requiresPhone,
+        )
     }
 }

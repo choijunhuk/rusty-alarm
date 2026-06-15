@@ -93,6 +93,29 @@ private fun NextAlarmFace() {
                     )
                 }
             }
+            state.readinessLabel?.let {
+                Text(
+                    text = "준비 상태 · $it",
+                    fontSize = 10.sp,
+                    color = if (it == "좋음") Color(0xFF8FE3B0) else Color(0xFFFFB088),
+                )
+            }
+            if (state.requiresPhone) {
+                Text(
+                    text = "해제는 폰 챌린지에서",
+                    fontSize = 9.sp,
+                    color = Color(0xFFFFB088),
+                )
+            } else if (state.canSnooze || state.canDismiss) {
+                Text(
+                    text = listOfNotNull(
+                        "스누즈".takeIf { state.canSnooze },
+                        "해제".takeIf { state.canDismiss },
+                    ).joinToString(" · ") + " 가능",
+                    fontSize = 9.sp,
+                    color = Color(0xFFCAC2E8),
+                )
+            }
         }
     }
 }

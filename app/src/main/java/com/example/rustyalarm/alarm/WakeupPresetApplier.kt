@@ -4,17 +4,17 @@ enum class WakeupPreset(
     val label: String,
     val description: String,
 ) {
-    STRICT(
-        label = "확실히 일어나기",
-        description = "챌린지, 스누즈 제한, 루틴을 함께 켜요.",
+    COMFORTABLE(
+        label = "편안한 기상",
+        description = "미리알림과 단계적 알람으로 부드럽게 깨워요.",
     ),
-    GENTLE_SAFE(
-        label = "부드럽지만 안전하게",
-        description = "미리알림과 단계적 알람으로 부담을 줄여요.",
+    ON_TIME(
+        label = "지각 방지",
+        description = "낮은 부담의 챌린지와 스누즈 제한으로 시간을 지켜요.",
     ),
-    FOCUS_DAY(
-        label = "중요한 날",
-        description = "회의나 수업 전에 놓치지 않도록 강하게 보강해요.",
+    FORCED(
+        label = "강제 기상",
+        description = "챌린지, 강한 음량, 기상 루틴을 함께 켜요.",
     ),
 }
 
@@ -33,7 +33,7 @@ data class WakeupProfile(
 object WakeupPresetApplier {
 
     fun apply(alarm: Alarm, preset: WakeupPreset): Alarm = when (preset) {
-        WakeupPreset.STRICT -> alarm.copy(
+        WakeupPreset.FORCED -> alarm.copy(
             challengeType = if (alarm.challengeType == ChallengeType.NONE) {
                 ChallengeType.MATH_MEDIUM
             } else {
@@ -54,16 +54,17 @@ object WakeupPresetApplier {
             vibrate = true,
         )
 
-        WakeupPreset.GENTLE_SAFE -> alarm.copy(
+        WakeupPreset.COMFORTABLE -> alarm.copy(
             gradualWakeup = true,
             volumeRampSeconds = alarm.volumeRampSeconds.coerceAtLeast(20),
             preAlarmMinutes = if (alarm.preAlarmMinutes == 0) 15 else alarm.preAlarmMinutes,
+            maxSnoozes = if (alarm.maxSnoozes == 0) 3 else alarm.maxSnoozes.coerceAtMost(3),
             alarmVolumePercent = alarm.alarmVolumePercent.coerceAtLeast(70),
             soundEnabled = true,
             vibrate = true,
         )
 
-        WakeupPreset.FOCUS_DAY -> alarm.copy(
+        WakeupPreset.ON_TIME -> alarm.copy(
             challengeType = if (alarm.challengeType == ChallengeType.NONE) {
                 ChallengeType.TYPING
             } else {
@@ -102,7 +103,7 @@ object WakeupPresetApplier {
             else -> WakeupProfile(
                 level = WakeupProfileLevel.WEAK,
                 title = "쉽게 꺼질 수 있어요",
-                recommendation = "확실히 일어나기 프리셋으로 끄기 장치를 추가해보세요.",
+                recommendation = "강제 기상 모드로 끄기 장치를 추가해보세요.",
             )
         }
     }

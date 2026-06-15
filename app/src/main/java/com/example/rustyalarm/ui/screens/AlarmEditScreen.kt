@@ -280,7 +280,7 @@ fun AlarmEditScreen(
                     }
                 }
                 Text(
-                    "프리셋은 현재 알람에 바로 반영되고, 저장을 눌러야 적용돼요.",
+                    "기상 모드는 현재 알람에 바로 반영되고, 저장을 눌러야 적용돼요.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 )

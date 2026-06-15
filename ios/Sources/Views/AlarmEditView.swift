@@ -58,7 +58,7 @@ struct AlarmEditView: View {
                             alarm = WakeupCoaching.apply(preset, to: alarm)
                         }
                     }
-                    Text("프리셋은 현재 알람에 바로 반영되고, 저장을 눌러야 적용돼요.")
+                    Text("기상 모드는 현재 알람에 바로 반영되고, 저장을 눌러야 적용돼요.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

@@ -121,7 +121,11 @@ fun AppNavigation(
                 StatsScreen(eventDao = eventDao, onBack = { navController.popBackStack() })
             }
             composable(Screen.Report.route) {
-                ReportScreen(eventDao = eventDao, onBack = { navController.popBackStack() })
+                ReportScreen(
+                    eventDao = eventDao,
+                    repository = repository,
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable(Screen.Pet.route) {
                 PetScreen(petDao = petDao, onBack = { navController.popBackStack() })

@@ -7,7 +7,7 @@ import org.junit.Test
 class WakeupPresetApplierTest {
 
     @Test
-    fun applyStrictPresetAddsDismissGateAndLimitsSnooze() {
+    fun forcedWakeupAddsDismissGateAndLimitsSnooze() {
         val alarm = WakeupPresetApplier.apply(
             alarm = Alarm(
                 challengeType = ChallengeType.NONE,
@@ -17,7 +17,7 @@ class WakeupPresetApplierTest {
                 vibrate = true,
                 alarmVolumePercent = 35,
             ),
-            preset = WakeupPreset.STRICT,
+            preset = WakeupPreset.FORCED,
         )
 
         assertEquals(ChallengeType.MATH_MEDIUM, alarm.challengeType)
@@ -28,20 +28,32 @@ class WakeupPresetApplierTest {
     }
 
     @Test
-    fun applyGentlePresetKeepsExistingChallengeButAddsPreAlarmSafety() {
+    fun comfortableWakeupKeepsExistingChallengeAndAllowsSeveralSnoozes() {
         val alarm = WakeupPresetApplier.apply(
             alarm = Alarm(
                 challengeType = ChallengeType.TYPING,
                 maxSnoozes = 3,
                 preAlarmMinutes = 0,
             ),
-            preset = WakeupPreset.GENTLE_SAFE,
+            preset = WakeupPreset.COMFORTABLE,
         )
 
         assertEquals(ChallengeType.TYPING, alarm.challengeType)
         assertEquals(3, alarm.maxSnoozes)
         assertEquals(15, alarm.preAlarmMinutes)
         assertTrue(alarm.gradualWakeup)
+    }
+
+    @Test
+    fun onTimeWakeupUsesLowFrictionGateAndOneSnooze() {
+        val alarm = WakeupPresetApplier.apply(
+            alarm = Alarm(challengeType = ChallengeType.NONE, maxSnoozes = 0),
+            preset = WakeupPreset.ON_TIME,
+        )
+
+        assertEquals(ChallengeType.TYPING, alarm.challengeType)
+        assertEquals(1, alarm.maxSnoozes)
+        assertTrue(alarm.alarmVolumePercent >= 90)
     }
 
     @Test
@@ -55,6 +67,6 @@ class WakeupPresetApplierTest {
         )
 
         assertEquals(WakeupProfileLevel.WEAK, profile.level)
-        assertTrue(profile.recommendation.contains("확실히"))
+        assertTrue(profile.recommendation.contains("강제 기상"))
     }
 }

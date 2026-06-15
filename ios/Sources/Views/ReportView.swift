@@ -2,7 +2,10 @@ import SwiftUI
 
 struct ReportView: View {
     @EnvironmentObject var events: EventStore
+    @EnvironmentObject var alarms: AlarmStore
     @State private var report: WeeklyReport = WeeklyReport()
+    @State private var pendingInsight: WakeupInsight?
+    @State private var appliedMessage: String?
 
     var body: some View {
         ScrollView {
@@ -20,6 +23,27 @@ struct ReportView: View {
         .navigationTitle("주간 리포트")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { report = events.weeklyReport() }
+        .confirmationDialog(
+            pendingInsight?.action.map { "\($0.preset.label) 모드를 적용할까요?" } ?? "",
+            isPresented: Binding(
+                get: { pendingInsight?.action != nil },
+                set: { if !$0 { pendingInsight = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let action = pendingInsight?.action {
+                Button(action.label) {
+                    let updated = alarms.apply(action.preset)
+                    appliedMessage = updated.map {
+                        "'\($0.title)'에 \(action.preset.label) 모드를 적용했어요."
+                    } ?? "먼저 활성 알람을 하나 만들어주세요."
+                    pendingInsight = nil
+                }
+            }
+            Button("취소", role: .cancel) { pendingInsight = nil }
+        } message: {
+            Text("가장 가까운 활성 알람의 주요 설정이 바뀝니다.")
+        }
     }
 
     private var streakCard: some View {
@@ -78,7 +102,14 @@ struct ReportView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(insight.title).font(.subheadline).bold()
                     Text(insight.detail).font(.footnote).foregroundStyle(.secondary)
+                    if let action = insight.action {
+                        Button(action.label) { pendingInsight = insight }
+                            .font(.footnote)
+                    }
                 }
+            }
+            if let appliedMessage {
+                Text(appliedMessage).font(.footnote).foregroundStyle(.purple)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

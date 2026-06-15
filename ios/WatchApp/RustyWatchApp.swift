@@ -17,6 +17,10 @@ private final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
     @Published var triggerAt: Date? = nil
     @Published var title: String? = nil
     @Published var streak: Int = 0
+    @Published var readiness: String? = nil
+    @Published var canSnooze: Bool = false
+    @Published var canDismiss: Bool = false
+    @Published var requiresPhone: Bool = false
 
     override init() {
         super.init()
@@ -36,6 +40,10 @@ private final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
         }
         title = ctx["title"] as? String
         streak = ctx["streak"] as? Int ?? 0
+        readiness = ctx["readiness"] as? String
+        canSnooze = ctx["can_snooze"] as? Bool ?? false
+        canDismiss = ctx["can_dismiss"] as? Bool ?? false
+        requiresPhone = ctx["requires_phone"] as? Bool ?? false
     }
 
     func session(_ session: WCSession,
@@ -79,6 +87,23 @@ private struct WatchRootView: View {
                     Text("🔥 \(model.streak)일 연속")
                         .font(.system(size: 11))
                         .foregroundStyle(.orange)
+                }
+                if let readiness = model.readiness, !readiness.isEmpty {
+                    Text("준비 상태 · \(readiness)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(readiness == "좋음" ? .green : .orange)
+                }
+                if model.requiresPhone {
+                    Text("해제는 iPhone 챌린지에서")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.orange)
+                } else if model.canSnooze || model.canDismiss {
+                    Text([
+                        model.canSnooze ? "스누즈" : nil,
+                        model.canDismiss ? "해제" : nil,
+                    ].compactMap { $0 }.joined(separator: " · ") + " 가능")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.white.opacity(0.7))
                 }
             }
             .padding(8)

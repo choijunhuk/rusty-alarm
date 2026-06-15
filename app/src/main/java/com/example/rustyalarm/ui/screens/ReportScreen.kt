@@ -21,16 +21,23 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rustyalarm.alarm.AlarmEventDao
+import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.viewmodel.ReportViewModel
+import com.example.rustyalarm.viewmodel.WakeupInsight
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(
     eventDao: AlarmEventDao,
+    repository: AlarmRepository,
     onBack: () -> Unit,
 ) {
     val vm: ReportViewModel = viewModel(factory = ReportViewModel.Factory(eventDao))
     val report by vm.report.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    var pendingInsight by remember { mutableStateOf<WakeupInsight?>(null) }
+    var appliedMessage by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -149,7 +156,19 @@ fun ReportScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                                 )
+                                insight.action?.let { action ->
+                                    TextButton(onClick = { pendingInsight = insight }) {
+                                        Text(action.label)
+                                    }
+                                }
                             }
+                        }
+                        appliedMessage?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
                         }
                     }
                 }
@@ -215,6 +234,32 @@ fun ReportScreen(
                 }
             }
         }
+    }
+
+    pendingInsight?.action?.let { action ->
+        AlertDialog(
+            onDismissRequest = { pendingInsight = null },
+            title = { Text("${action.preset.label} 모드를 적용할까요?") },
+            text = { Text("가장 가까운 활성 알람의 주요 설정이 바뀝니다. 적용 후에도 알람 편집에서 조정할 수 있어요.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingInsight = null
+                        scope.launch {
+                            val updated = repository.applyPresetToNextEnabled(action.preset)
+                            appliedMessage = if (updated == null) {
+                                "먼저 활성 알람을 하나 만들어주세요."
+                            } else {
+                                "'${updated.title}'에 ${action.preset.label} 모드를 적용했어요."
+                            }
+                        }
+                    },
+                ) { Text("적용") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingInsight = null }) { Text("취소") }
+            },
+        )
     }
 }
 

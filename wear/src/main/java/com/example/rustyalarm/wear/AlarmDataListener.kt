@@ -21,7 +21,14 @@ class AlarmDataListener : WearableListenerService() {
             val triggerAt = if (map.containsKey(KEY_TRIGGER_AT))
                 map.getLong(KEY_TRIGGER_AT) else null
             val title = map.getString(KEY_TITLE)
-            NextAlarmStore.update(triggerAt, title)
+            NextAlarmStore.update(
+                triggerAtMillis = triggerAt,
+                title = title,
+                readinessLabel = map.getString(KEY_READINESS),
+                canSnooze = map.getBoolean(KEY_CAN_SNOOZE, false),
+                canDismiss = map.getBoolean(KEY_CAN_DISMISS, false),
+                requiresPhone = map.getBoolean(KEY_REQUIRES_PHONE, false),
+            )
         }
     }
 
@@ -29,5 +36,9 @@ class AlarmDataListener : WearableListenerService() {
         const val PATH_NEXT_ALARM = "/rusty-alarm/next"
         const val KEY_TRIGGER_AT  = "trigger_at"
         const val KEY_TITLE       = "title"
+        const val KEY_READINESS   = "readiness"
+        const val KEY_CAN_SNOOZE  = "can_snooze"
+        const val KEY_CAN_DISMISS = "can_dismiss"
+        const val KEY_REQUIRES_PHONE = "requires_phone"
     }
 }
