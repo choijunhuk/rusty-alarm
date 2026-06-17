@@ -49,6 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.rustyalarm.alarm.Alarm
+import com.example.rustyalarm.alarm.AlarmReliability
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.ChallengeType
 import com.example.rustyalarm.alarm.WakeupPreset
@@ -628,6 +630,11 @@ fun AlarmEditScreen(
                 }
             }
 
+            DraftReliabilityPreview(
+                alarm = alarm,
+                onApplyPreset = vm::applyWakeupPreset,
+            )
+
             Spacer(Modifier.height(4.dp))
 
             Button(
@@ -782,6 +789,92 @@ private fun SectionCard(
             }
         }
     }
+}
+
+@Composable
+private fun DraftReliabilityPreview(
+    alarm: Alarm,
+    onApplyPreset: (WakeupPreset) -> Unit,
+) {
+    val profile = remember(alarm) { WakeupPresetApplier.profile(alarm) }
+    val issues = remember(alarm) { AlarmReliability.alarmIssues(alarm) }
+    val strengths = remember(alarm) { AlarmReliability.alarmStrengths(alarm) }
+    val recommendedPreset = remember(alarm) { AlarmReliability.recommendedPreset(alarm) }
+
+    SectionCard(
+        title = "저장 전 성공 점검",
+        icon = Icons.Default.NotificationsActive,
+        initiallyExpanded = true,
+    ) {
+        Text(
+            "${profile.title} · ${profile.level.label}",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            profile.recommendation,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+        )
+
+        issues.firstOrNull()?.let { issue ->
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        issue.title,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                    Text(
+                        issue.detail,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.72f),
+                    )
+                }
+            }
+        }
+
+        if (strengths.isNotEmpty()) {
+            Text(
+                strengths.take(3).joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            )
+        }
+
+        recommendedPreset?.let { preset ->
+            Text(
+                presetImpactText(preset),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+            )
+            FilledTonalButton(
+                onClick = { onApplyPreset(preset) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Text("${preset.label} 적용")
+            }
+        }
+    }
+}
+
+private fun presetImpactText(preset: WakeupPreset): String = when (preset) {
+    WakeupPreset.COMFORTABLE ->
+        "미리알림, 단계적 알람, 최대 3회 스누즈로 부담을 낮춰요."
+    WakeupPreset.ON_TIME ->
+        "스누즈 1회, 타이핑 챌린지, 높은 음량으로 시간을 지키게 해요."
+    WakeupPreset.FORCED ->
+        "끄기 장치, 강한 음량, 기상 루틴을 함께 켜서 무의식 끄기를 막아요."
 }
 
 @Composable

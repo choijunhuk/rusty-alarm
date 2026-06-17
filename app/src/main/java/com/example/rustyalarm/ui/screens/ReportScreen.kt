@@ -156,7 +156,20 @@ fun ReportScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                                 )
+                                insight.cause?.let { cause ->
+                                    Text(
+                                        cause,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
                                 insight.action?.let { action ->
+                                    Text(
+                                        action.expectedResult,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                    )
                                     TextButton(onClick = { pendingInsight = insight }) {
                                         Text(action.label)
                                     }

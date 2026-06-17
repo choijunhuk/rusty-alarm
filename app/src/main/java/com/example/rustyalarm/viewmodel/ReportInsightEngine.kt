@@ -15,12 +15,14 @@ data class WakeupInsight(
     val id: String,
     val title: String,
     val detail: String,
+    val cause: String? = null,
     val action: WakeupInsightAction? = null,
 )
 
 data class WakeupInsightAction(
     val label: String,
     val preset: WakeupPreset,
+    val expectedResult: String,
 )
 
 object ReportInsightEngine {
@@ -43,6 +45,7 @@ object ReportInsightEngine {
                 id = "low_completion",
                 title = "알람 신뢰도부터 점검하세요",
                 detail = "울린 알람 대비 끈 알람이 적어요. 권한, 배터리 예외, 테스트 알람을 먼저 확인하는 게 좋아요.",
+                cause = "기상 완료율 $completionRate%",
             )
         }
 
@@ -51,7 +54,12 @@ object ReportInsightEngine {
                 id = "high_snooze",
                 title = "스누즈가 많은 편이에요",
                 detail = "스누즈를 1-2회로 제한하고 챌린지 난이도를 한 단계 올려보세요.",
-                action = WakeupInsightAction("지각 방지 모드 적용", WakeupPreset.ON_TIME),
+                cause = "이번 주 스누즈 비율 $snoozeRate%",
+                action = WakeupInsightAction(
+                    label = "지각 방지 모드 적용",
+                    preset = WakeupPreset.ON_TIME,
+                    expectedResult = "다음 알람을 스누즈 1회, 타이핑 챌린지, 높은 음량으로 바꿔요.",
+                ),
             )
         }
 
@@ -60,7 +68,12 @@ object ReportInsightEngine {
                 id = "no_challenge",
                 title = "챌린지를 하나 켜보세요",
                 detail = "무의식적으로 끄는 일이 있다면 수학 쉬움이나 타이핑 챌린지가 부담이 적어요.",
-                action = WakeupInsightAction("강제 기상 모드 적용", WakeupPreset.FORCED),
+                cause = "끈 알람 ${input.dismissed}회 중 챌린지 완료 기록이 없어요.",
+                action = WakeupInsightAction(
+                    label = "강제 기상 모드 적용",
+                    preset = WakeupPreset.FORCED,
+                    expectedResult = "다음 알람에 끄기 장치, 강한 음량, 기상 루틴을 추가해요.",
+                ),
             )
         }
 
@@ -69,7 +82,12 @@ object ReportInsightEngine {
                 id = "slow_response",
                 title = "끄기까지 시간이 오래 걸려요",
                 detail = "미리알림이나 단계적 알람을 켜면 갑작스러운 기상 부담을 줄일 수 있어요.",
-                action = WakeupInsightAction("편안한 기상 모드 적용", WakeupPreset.COMFORTABLE),
+                cause = "평균 끄기 시간 ${input.avgResponseSec / 60}분 이상",
+                action = WakeupInsightAction(
+                    label = "편안한 기상 모드 적용",
+                    preset = WakeupPreset.COMFORTABLE,
+                    expectedResult = "다음 알람에 미리알림, 단계적 알람, 제한된 스누즈를 적용해요.",
+                ),
             )
         }
 

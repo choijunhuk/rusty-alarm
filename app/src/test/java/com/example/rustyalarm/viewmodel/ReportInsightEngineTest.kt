@@ -38,6 +38,15 @@ class ReportInsightEngineTest {
 
         assertTrue(insights.any { it.id == "high_snooze" })
         assertTrue(insights.any { it.id == "no_challenge" })
+        assertTrue(insights.first { it.id == "high_snooze" }.cause!!.contains("75%"))
+        assertTrue(
+            insights.first { it.id == "high_snooze" }
+                .action!!.expectedResult.contains("스누즈 1회"),
+        )
+        assertTrue(
+            insights.first { it.id == "no_challenge" }
+                .action!!.expectedResult.contains("끄기 장치"),
+        )
         assertEquals(
             WakeupPreset.ON_TIME,
             insights.first { it.id == "high_snooze" }.action?.preset,

@@ -45,6 +45,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmReliability
 import com.example.rustyalarm.alarm.AlarmRepository
+import com.example.rustyalarm.alarm.Permissions
+import com.example.rustyalarm.alarm.ReliabilityActionKind
+import com.example.rustyalarm.alarm.ReliabilityDiagnostic
+import com.example.rustyalarm.alarm.ReliabilityLevel
 import com.example.rustyalarm.alarm.ReliabilityIssue
 import com.example.rustyalarm.ui.components.AlarmCard
 import com.example.rustyalarm.viewmodel.AlarmListViewModel
@@ -103,10 +107,40 @@ fun AlarmListScreen(
     val nextAlarmIssues = remember(nextAlarm?.first) {
         nextAlarm?.first?.let { AlarmReliability.alarmIssues(it) }.orEmpty()
     }
+    val permissionsStatus = remember(nowMillis) { Permissions.status(ctx) }
+    val readinessDiagnostic = remember(permissionsStatus, alarms, nextAlarm?.first) {
+        AlarmReliability.diagnose(
+            permissions = permissionsStatus,
+            enabledAlarmCount = alarms.count { it.enabled },
+            nextAlarm = nextAlarm?.first,
+        )
+    }
     val lastDismissedAt by vm.lastDismissedAt.collectAsStateWithLifecycle()
     val weather by vm.weather.collectAsStateWithLifecycle()
     val weeklyDismissed by vm.weeklyDismissed.collectAsStateWithLifecycle()
     var quickMenuOpen by remember { mutableStateOf(false) }
+
+    fun openReliabilityAction(issue: ReliabilityIssue) {
+        runCatching {
+            when (issue.actionKind) {
+                ReliabilityActionKind.NOTIFICATION_SETTINGS ->
+                    ctx.startActivity(Permissions.appNotificationSettings(ctx))
+                ReliabilityActionKind.EXACT_ALARM_SETTINGS ->
+                    Permissions.exactAlarmSettings(ctx)?.let(ctx::startActivity)
+                ReliabilityActionKind.BATTERY_SETTINGS ->
+                    ctx.startActivity(Permissions.batteryOptimizationSettings(ctx))
+                ReliabilityActionKind.CREATE_TEST_ALARM -> vm.quickAlarm(5)
+                ReliabilityActionKind.EDIT_ALARM -> nextAlarm?.first?.let(onEditAlarm)
+                ReliabilityActionKind.NONE -> Unit
+            }
+        }.onFailure {
+            android.widget.Toast.makeText(
+                ctx,
+                "설정을 열 수 없어요. 시스템 설정에서 Rusty Alarm을 확인해주세요.",
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
 
     TimeOfDayBackground(isDark = isSystemInDarkTheme()) {
         Scaffold(
@@ -191,6 +225,13 @@ fun AlarmListScreen(
                         weeklyDismissed = weeklyDismissed,
                         nextAlarmIssues = nextAlarmIssues,
                         onRecordBedtime = { vm.recordBedtime() },
+                    )
+                }
+
+                item {
+                    ReadinessActionPanel(
+                        diagnostic = readinessDiagnostic,
+                        onIssueAction = ::openReliabilityAction,
                     )
                 }
 
@@ -307,6 +348,90 @@ fun AlarmListScreen(
                 }
 
                 item { Spacer(Modifier.height(80.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReadinessActionPanel(
+    diagnostic: ReliabilityDiagnostic,
+    onIssueAction: (ReliabilityIssue) -> Unit,
+) {
+    val primaryIssue = AlarmReliability.primaryIssue(diagnostic.issues)
+    if (primaryIssue == null && diagnostic.level == ReliabilityLevel.READY) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        "다음 알람 준비도",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        diagnostic.headline,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                AssistChip(
+                    onClick = {},
+                    enabled = false,
+                    label = { Text("${diagnostic.score} · ${diagnostic.level.label}") },
+                )
+            }
+
+            primaryIssue?.let { issue ->
+                Text(
+                    issue.title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    issue.detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                )
+                issue.actionLabel?.let { label ->
+                    FilledTonalButton(
+                        onClick = { onIssueAction(issue) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text(label)
+                    }
+                }
+            }
+
+            val extraCount = diagnostic.issues.size - 1
+            if (extraCount > 0) {
+                Text(
+                    "추가 보강 ${extraCount}개는 설정과 알람 편집에서 이어서 조정할 수 있어요.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                )
             }
         }
     }
