@@ -396,6 +396,13 @@ fun SettingsScreen(
                             },
                         )
                         PermissionRow(
+                            label = "전체 화면 알림 (Android 14+)",
+                            ok = perms.fullScreenIntent,
+                            action = {
+                                context.startActivity(Permissions.appNotificationSettings(context))
+                            },
+                        )
+                        PermissionRow(
                             label = "배터리 최적화 무시",
                             ok = perms.ignoringBatteryOpts,
                             action = {

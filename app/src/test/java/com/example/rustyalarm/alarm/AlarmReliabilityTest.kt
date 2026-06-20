@@ -13,6 +13,7 @@ class AlarmReliabilityTest {
                 notifications = false,
                 exactAlarm = false,
                 ignoringBatteryOpts = false,
+                fullScreenIntent = false,
             ),
             enabledAlarmCount = 1,
             nextAlarm = strongAlarm(),
@@ -22,6 +23,7 @@ class AlarmReliabilityTest {
         assertTrue(diagnostic.score < 60)
         assertTrue(diagnostic.issues.any { it.id == "notifications" && it.blocking })
         assertTrue(diagnostic.issues.any { it.id == "exact_alarm" && it.blocking })
+        assertTrue(diagnostic.issues.any { it.id == "full_screen_intent" })
         assertTrue(diagnostic.issues.any { it.id == "battery_optimization" })
     }
 
@@ -77,6 +79,7 @@ class AlarmReliabilityTest {
                 notifications = false,
                 exactAlarm = false,
                 ignoringBatteryOpts = false,
+                fullScreenIntent = false,
             ),
             enabledAlarmCount = 0,
             nextAlarm = Alarm(
@@ -88,6 +91,10 @@ class AlarmReliabilityTest {
             ),
         )
 
+        assertEquals(
+            ReliabilityActionKind.NOTIFICATION_SETTINGS,
+            diagnostic.issues.first { it.id == "full_screen_intent" }.actionKind,
+        )
         assertEquals(
             ReliabilityActionKind.NOTIFICATION_SETTINGS,
             diagnostic.issues.first { it.id == "notifications" }.actionKind,
