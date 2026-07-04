@@ -11,7 +11,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.TextStyle
 import com.example.rustyalarm.ui.theme.TimeOfDayBackground
+import com.example.rustyalarm.ui.theme.isAppInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
@@ -142,7 +142,7 @@ fun AlarmListScreen(
         }
     }
 
-    TimeOfDayBackground(isDark = isSystemInDarkTheme()) {
+    TimeOfDayBackground(isDark = isAppInDarkTheme()) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {

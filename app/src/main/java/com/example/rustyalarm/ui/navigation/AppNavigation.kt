@@ -1,5 +1,10 @@
 package com.example.rustyalarm.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
@@ -107,6 +112,10 @@ fun AppNavigation(
             navController = navController,
             startDestination = Screen.List.route,
             modifier = Modifier.padding(padding),
+            enterTransition = { fadeIn(tween(220)) },
+            exitTransition = { fadeOut(tween(180)) },
+            popEnterTransition = { fadeIn(tween(220)) },
+            popExitTransition = { fadeOut(tween(180)) },
         ) {
             composable(Screen.List.route) {
                 AlarmListScreen(
@@ -147,6 +156,12 @@ fun AppNavigation(
             composable(
                 route = Screen.Edit.route,
                 arguments = listOf(navArgument("alarmId") { type = NavType.LongType }),
+                enterTransition = {
+                    slideInVertically(tween(280)) { it / 3 } + fadeIn(tween(280))
+                },
+                popExitTransition = {
+                    slideOutVertically(tween(220)) { it / 3 } + fadeOut(tween(220))
+                },
             ) { backStack ->
                 val alarmId = backStack.arguments?.getLong("alarmId") ?: -1L
                 AlarmEditScreen(

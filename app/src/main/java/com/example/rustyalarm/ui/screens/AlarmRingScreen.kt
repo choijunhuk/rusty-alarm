@@ -21,9 +21,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,6 +39,7 @@ import com.example.rustyalarm.ui.components.QrChallengeCard
 import com.example.rustyalarm.ui.components.SquatChallengeCard
 import com.example.rustyalarm.ui.components.VoiceChallengeCard
 import com.example.rustyalarm.ui.components.TetrisChallenge
+import com.example.rustyalarm.ui.theme.screenBackgroundBrush
 import kotlin.math.abs
 
 @Composable
@@ -95,6 +96,15 @@ fun AlarmRingScreen(
     var solved      by remember { mutableStateOf(challengeType == ChallengeType.NONE) }
 
     val stepTarget = 20
+
+    // Confirm the moment a challenge is cleared — the user is half-asleep,
+    // a tactile "done" beats a visual state change they might miss.
+    val haptic = LocalHapticFeedback.current
+    LaunchedEffect(solved) {
+        if (solved && challengeType != ChallengeType.NONE) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
 
     // ── shake sensor (3 difficulty levels) ──────────
     val isShakeChallenge = challengeType == ChallengeType.SHAKE_EASY ||
@@ -177,13 +187,7 @@ fun AlarmRingScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(
-                listOf(
-                    Color(0xFF0F0D26),
-                    Color(0xFF2A1F5C),
-                    Color(0xFF0F0D26),
-                )
-            )),
+            .background(screenBackgroundBrush()),
         contentAlignment = Alignment.Center,
     ) {
         Column(
