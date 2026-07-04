@@ -20,18 +20,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.rustyalarm.pet.PetDao
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rustyalarm.pet.PetSkin
 import com.example.rustyalarm.viewmodel.PetViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PetScreen(
-    petDao: PetDao,
     onBack: () -> Unit,
 ) {
-    val vm: PetViewModel = viewModel(factory = PetViewModel.Factory(petDao))
+    val vm: PetViewModel = hiltViewModel()
     val pet by vm.pet.collectAsStateWithLifecycle()
     var renameDialog by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }

@@ -1,8 +1,9 @@
 package com.example.rustyalarm.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.example.rustyalarm.alarm.AlarmEventDao
 import com.example.rustyalarm.alarm.AlarmEventType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +31,8 @@ data class WeeklyReport(
     val insights: List<WakeupInsight> = emptyList(),
 )
 
-class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
+@HiltViewModel
+class ReportViewModel @Inject constructor(private val eventDao: AlarmEventDao) : ViewModel() {
 
     private val _report = MutableStateFlow(WeeklyReport())
     val report: StateFlow<WeeklyReport> = _report.asStateFlow()
@@ -153,9 +155,4 @@ class ReportViewModel(private val eventDao: AlarmEventDao) : ViewModel() {
         return streak
     }
 
-    class Factory(private val dao: AlarmEventDao) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            ReportViewModel(dao) as T
-    }
 }

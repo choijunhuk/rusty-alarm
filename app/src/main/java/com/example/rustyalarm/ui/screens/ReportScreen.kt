@@ -21,8 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.rustyalarm.alarm.AlarmEventDao
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.viewmodel.ReportViewModel
 import com.example.rustyalarm.viewmodel.WakeupInsight
@@ -31,11 +30,10 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(
-    eventDao: AlarmEventDao,
     repository: AlarmRepository,
     onBack: () -> Unit,
 ) {
-    val vm: ReportViewModel = viewModel(factory = ReportViewModel.Factory(eventDao))
+    val vm: ReportViewModel = hiltViewModel()
     val report by vm.report.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var pendingInsight by remember { mutableStateOf<WakeupInsight?>(null) }

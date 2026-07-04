@@ -41,10 +41,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmReliability
-import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.Permissions
 import com.example.rustyalarm.alarm.ReliabilityActionKind
 import com.example.rustyalarm.alarm.ReliabilityDiagnostic
@@ -59,7 +58,6 @@ import kotlin.math.max
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AlarmListScreen(
-    repository: AlarmRepository,
     nickname: String = "사용자",
     onAddAlarm: () -> Unit,
     onEditAlarm: (Alarm) -> Unit,
@@ -70,12 +68,7 @@ fun AlarmListScreen(
     onOpenSettings: (() -> Unit)? = null,
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val vm: AlarmListViewModel = viewModel(
-        factory = AlarmListViewModel.Factory(
-            ctx.applicationContext as android.app.Application,
-            repository,
-        ),
-    )
+    val vm: AlarmListViewModel = hiltViewModel()
     val alarms by vm.alarms.collectAsStateWithLifecycle()
     val groups by vm.groups.collectAsStateWithLifecycle()
 

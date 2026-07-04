@@ -48,10 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmReliability
-import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.ChallengeType
 import com.example.rustyalarm.alarm.WakeupPreset
 import com.example.rustyalarm.alarm.WakeupPresetApplier
@@ -65,10 +64,9 @@ import java.util.*
 @Composable
 fun AlarmEditScreen(
     alarmId: Long,
-    repository: AlarmRepository,
     onBack: () -> Unit,
 ) {
-    val vm: AlarmEditViewModel = viewModel(factory = AlarmEditViewModel.Factory(repository))
+    val vm: AlarmEditViewModel = hiltViewModel()
     val context = LocalContext.current
     val alarm    by vm.alarm.collectAsStateWithLifecycle()
     val saved    by vm.saved.collectAsStateWithLifecycle()

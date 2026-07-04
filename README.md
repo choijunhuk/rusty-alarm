@@ -187,7 +187,7 @@ rusty-alarm/
 ## 향후 개선 예정
 
 - [ ] UniFFI 활성화 (현재는 UDL + 문서만)
-- [ ] Hilt 의존성 주입
+- [x] Hilt 의존성 주입
 - [ ] Compose UI 테스트
 - [ ] iOS 유료 가입 후 TestFlight 베타 채널
 - [ ] iOS Critical Alerts entitlement 신청 (Apple 수동 검토)

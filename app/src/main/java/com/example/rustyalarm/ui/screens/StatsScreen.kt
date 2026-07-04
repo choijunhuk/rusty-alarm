@@ -18,8 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.rustyalarm.alarm.AlarmEventDao
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rustyalarm.alarm.ChallengeType
 import com.example.rustyalarm.ui.components.BarChart
 import com.example.rustyalarm.ui.components.BarDatum
@@ -30,10 +29,9 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
-    eventDao: AlarmEventDao,
     onBack: () -> Unit,
 ) {
-    val vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory(eventDao))
+    val vm: StatsViewModel = hiltViewModel()
     val daily      by vm.dailyCounts.collectAsStateWithLifecycle()
     val challenges by vm.challengeBreakdown.collectAsStateWithLifecycle()
     val summary    by vm.summary.collectAsStateWithLifecycle()
