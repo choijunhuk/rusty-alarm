@@ -1,5 +1,10 @@
 package com.example.rustyalarm.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
@@ -22,10 +27,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.rustyalarm.alarm.AlarmEventDao
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.auth.AuthViewModel
-import com.example.rustyalarm.pet.PetDao
 import com.example.rustyalarm.prefs.ThemePreferences
 import com.example.rustyalarm.prefs.UserPreferences
 import com.example.rustyalarm.prefs.UserProfile
@@ -66,8 +69,6 @@ private val TABS = listOf(
 @Composable
 fun AppNavigation(
     repository: AlarmRepository,
-    eventDao: AlarmEventDao,
-    petDao: PetDao,
     authVm: AuthViewModel,
     themePrefs: ThemePreferences,
     userPrefs: UserPreferences,
@@ -107,10 +108,13 @@ fun AppNavigation(
             navController = navController,
             startDestination = Screen.List.route,
             modifier = Modifier.padding(padding),
+            enterTransition = { fadeIn(tween(220)) },
+            exitTransition = { fadeOut(tween(180)) },
+            popEnterTransition = { fadeIn(tween(220)) },
+            popExitTransition = { fadeOut(tween(180)) },
         ) {
             composable(Screen.List.route) {
                 AlarmListScreen(
-                    repository = repository,
                     nickname = userProfile.nickname,
                     onAddAlarm  = { navController.navigate(Screen.Edit.route()) },
                     onEditAlarm = { alarm -> navController.navigate(Screen.Edit.route(alarm.id)) },
@@ -118,17 +122,16 @@ fun AppNavigation(
                 )
             }
             composable(Screen.Stats.route) {
-                StatsScreen(eventDao = eventDao, onBack = { navController.popBackStack() })
+                StatsScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.Report.route) {
                 ReportScreen(
-                    eventDao = eventDao,
                     repository = repository,
                     onBack = { navController.popBackStack() },
                 )
             }
             composable(Screen.Pet.route) {
-                PetScreen(petDao = petDao, onBack = { navController.popBackStack() })
+                PetScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.Sleep.route) {
                 SleepSoundsScreen(onBack = { navController.popBackStack() })
@@ -147,11 +150,16 @@ fun AppNavigation(
             composable(
                 route = Screen.Edit.route,
                 arguments = listOf(navArgument("alarmId") { type = NavType.LongType }),
+                enterTransition = {
+                    slideInVertically(tween(280)) { it / 3 } + fadeIn(tween(280))
+                },
+                popExitTransition = {
+                    slideOutVertically(tween(220)) { it / 3 } + fadeOut(tween(220))
+                },
             ) { backStack ->
                 val alarmId = backStack.arguments?.getLong("alarmId") ?: -1L
                 AlarmEditScreen(
                     alarmId = alarmId,
-                    repository = repository,
                     onBack = { navController.popBackStack() },
                 )
             }

@@ -1,8 +1,9 @@
 package com.example.rustyalarm.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.example.rustyalarm.pet.Pet
 import com.example.rustyalarm.pet.PetDao
 import kotlinx.coroutines.flow.SharingStarted
@@ -10,7 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class PetViewModel(private val dao: PetDao) : ViewModel() {
+@HiltViewModel
+class PetViewModel @Inject constructor(private val dao: PetDao) : ViewModel() {
 
     val pet: StateFlow<Pet?> = dao.observe().stateIn(
         scope = viewModelScope,
@@ -43,9 +45,4 @@ class PetViewModel(private val dao: PetDao) : ViewModel() {
         return null
     }
 
-    class Factory(private val dao: PetDao) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            PetViewModel(dao) as T
-    }
 }

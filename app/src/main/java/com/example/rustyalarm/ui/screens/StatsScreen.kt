@@ -7,7 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,8 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.rustyalarm.alarm.AlarmEventDao
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rustyalarm.alarm.ChallengeType
 import com.example.rustyalarm.ui.components.BarChart
 import com.example.rustyalarm.ui.components.BarDatum
@@ -30,10 +29,9 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
-    eventDao: AlarmEventDao,
     onBack: () -> Unit,
 ) {
-    val vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory(eventDao))
+    val vm: StatsViewModel = hiltViewModel()
     val daily      by vm.dailyCounts.collectAsStateWithLifecycle()
     val challenges by vm.challengeBreakdown.collectAsStateWithLifecycle()
     val summary    by vm.summary.collectAsStateWithLifecycle()
@@ -71,7 +69,7 @@ fun StatsScreen(
                     title = { Text("알람 통계") },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),

@@ -2,6 +2,7 @@ package com.example.rustyalarm
 
 import android.app.Application
 import com.example.rustyalarm.alarm.AlarmDatabase
+import dagger.hilt.android.HiltAndroidApp
 import com.example.rustyalarm.alarm.AlarmNotificationManager
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.AlarmScheduler
@@ -12,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
+@HiltAndroidApp
 class RustyAlarmApplication : Application() {
 
     val database by lazy { AlarmDatabase.getDatabase(this) }

@@ -1,8 +1,9 @@
 package com.example.rustyalarm.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.ChallengeType
@@ -15,7 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() {
+@HiltViewModel
+class AlarmEditViewModel @Inject constructor(private val repository: AlarmRepository) : ViewModel() {
 
     private val _alarm    = MutableStateFlow(Alarm())
     val alarm: StateFlow<Alarm> = _alarm.asStateFlow()
@@ -178,9 +180,4 @@ class AlarmEditViewModel(private val repository: AlarmRepository) : ViewModel() 
         }
     }
 
-    class Factory(private val repository: AlarmRepository) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AlarmEditViewModel(repository) as T
-    }
 }

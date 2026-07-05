@@ -2,8 +2,9 @@ import SwiftUI
 
 struct AlarmListView: View {
     @EnvironmentObject var store: AlarmStore
-    @State private var editing: Alarm? = nil
-    @State private var now: Date = Date()
+    @State private var editing:   Alarm? = nil
+    @State private var now:       Date   = Date()
+    @State private var showStats: Bool   = false
 
     var body: some View {
         NavigationStack {
@@ -38,12 +39,18 @@ struct AlarmListView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        editing = Alarm()
-                    } label: {
+                    Button { showStats = true } label: {
+                        Image(systemName: "chart.bar.fill")
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { editing = Alarm() } label: {
                         Image(systemName: "plus")
                     }
                 }
+            }
+            .navigationDestination(isPresented: $showStats) {
+                StatsView()
             }
             .sheet(item: $editing) { a in
                 AlarmEditView(initial: a) { saved in

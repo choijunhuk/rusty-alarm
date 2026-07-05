@@ -3,9 +3,11 @@ import com.example.rustyalarm.ui.theme.screenBackgroundBrush
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.TrendingUp
@@ -19,8 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.rustyalarm.alarm.AlarmEventDao
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.viewmodel.ReportViewModel
 import com.example.rustyalarm.viewmodel.WakeupInsight
@@ -29,11 +30,10 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(
-    eventDao: AlarmEventDao,
     repository: AlarmRepository,
     onBack: () -> Unit,
 ) {
-    val vm: ReportViewModel = viewModel(factory = ReportViewModel.Factory(eventDao))
+    val vm: ReportViewModel = hiltViewModel()
     val report by vm.report.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var pendingInsight by remember { mutableStateOf<WakeupInsight?>(null) }
@@ -51,7 +51,7 @@ fun ReportScreen(
                     title = { Text("주간 리포트") },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
@@ -62,9 +62,41 @@ fun ReportScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // Empty state — no wakeup events recorded yet
+                if (report.ready && report.fired == 0) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
+                        shape = RoundedCornerShape(20.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("🌅", fontSize = 40.sp)
+                            Text(
+                                "아직 기상 기록이 없어요",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                "알람을 설정하고 첫 기상을 하면\n주간 리포트가 여기에 쌓여요.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+
                 // Streak hero
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -131,7 +163,7 @@ fun ReportScreen(
                     )
                 }
 
-                Card(
+                if (report.insights.isNotEmpty()) Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(16.dp),

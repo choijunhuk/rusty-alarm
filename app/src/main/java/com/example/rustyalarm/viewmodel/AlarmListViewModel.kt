@@ -2,9 +2,9 @@ package com.example.rustyalarm.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.weather.Weather
@@ -16,7 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class AlarmListViewModel(
+@HiltViewModel
+class AlarmListViewModel @Inject constructor(
     app: Application,
     private val repository: AlarmRepository,
 ) : AndroidViewModel(app) {
@@ -107,12 +108,4 @@ class AlarmListViewModel(
         viewModelScope.launch { repository.setGroupEnabled(tag, enabled) }
     }
 
-    class Factory(
-        private val app: Application,
-        private val repository: AlarmRepository,
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AlarmListViewModel(app, repository) as T
-    }
 }

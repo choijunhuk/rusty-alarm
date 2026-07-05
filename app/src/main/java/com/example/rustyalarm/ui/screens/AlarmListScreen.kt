@@ -11,7 +11,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.TextStyle
 import com.example.rustyalarm.ui.theme.TimeOfDayBackground
+import com.example.rustyalarm.ui.theme.isAppInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
@@ -41,10 +41,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmReliability
-import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.Permissions
 import com.example.rustyalarm.alarm.ReliabilityActionKind
 import com.example.rustyalarm.alarm.ReliabilityDiagnostic
@@ -59,7 +58,6 @@ import kotlin.math.max
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AlarmListScreen(
-    repository: AlarmRepository,
     nickname: String = "사용자",
     onAddAlarm: () -> Unit,
     onEditAlarm: (Alarm) -> Unit,
@@ -70,12 +68,7 @@ fun AlarmListScreen(
     onOpenSettings: (() -> Unit)? = null,
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val vm: AlarmListViewModel = viewModel(
-        factory = AlarmListViewModel.Factory(
-            ctx.applicationContext as android.app.Application,
-            repository,
-        ),
-    )
+    val vm: AlarmListViewModel = hiltViewModel()
     val alarms by vm.alarms.collectAsStateWithLifecycle()
     val groups by vm.groups.collectAsStateWithLifecycle()
 
@@ -142,7 +135,7 @@ fun AlarmListScreen(
         }
     }
 
-    TimeOfDayBackground(isDark = isSystemInDarkTheme()) {
+    TimeOfDayBackground(isDark = isAppInDarkTheme()) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {

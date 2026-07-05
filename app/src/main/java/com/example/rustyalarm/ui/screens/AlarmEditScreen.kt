@@ -20,7 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Delete
@@ -48,10 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmReliability
-import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.alarm.ChallengeType
 import com.example.rustyalarm.alarm.WakeupPreset
 import com.example.rustyalarm.alarm.WakeupPresetApplier
@@ -65,10 +64,9 @@ import java.util.*
 @Composable
 fun AlarmEditScreen(
     alarmId: Long,
-    repository: AlarmRepository,
     onBack: () -> Unit,
 ) {
-    val vm: AlarmEditViewModel = viewModel(factory = AlarmEditViewModel.Factory(repository))
+    val vm: AlarmEditViewModel = hiltViewModel()
     val context = LocalContext.current
     val alarm    by vm.alarm.collectAsStateWithLifecycle()
     val saved    by vm.saved.collectAsStateWithLifecycle()
@@ -171,7 +169,7 @@ fun AlarmEditScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
                     }
                 },
                 actions = {

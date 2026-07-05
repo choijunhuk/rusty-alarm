@@ -11,6 +11,9 @@ struct RootTabView: View {
 
             NavigationStack { ReportView() }
                 .tabItem { Label("리포트", systemImage: "chart.bar.xaxis") }
+
+            NavigationStack { SleepSoundsView() }
+                .tabItem { Label("수면", systemImage: "moon.fill") }
         }
     }
 }

@@ -11,7 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
@@ -124,7 +124,7 @@ fun SettingsScreen(
                     title = { Text("설정") },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
@@ -393,6 +393,13 @@ fun SettingsScreen(
                             ok = perms.exactAlarm,
                             action = {
                                 Permissions.exactAlarmSettings(context)?.let { context.startActivity(it) }
+                            },
+                        )
+                        PermissionRow(
+                            label = "전체 화면 알림 (Android 14+)",
+                            ok = perms.fullScreenIntent,
+                            action = {
+                                context.startActivity(Permissions.appNotificationSettings(context))
                             },
                         )
                         PermissionRow(

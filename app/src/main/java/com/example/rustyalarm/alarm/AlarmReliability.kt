@@ -71,6 +71,20 @@ object AlarmReliability {
             strengths += "정확한 알람 OK"
         }
 
+        if (!permissions.fullScreenIntent) {
+            issues += ReliabilityIssue(
+                id = "full_screen_intent",
+                title = "잠금화면 전체 화면 알림이 제한돼 있어요",
+                detail = "Android 14 이상에서는 알람은 울려도 알람 화면이 바로 뜨지 않을 수 있어요.",
+                actionLabel = "알림 설정",
+                blocking = true,
+                actionKind = ReliabilityActionKind.NOTIFICATION_SETTINGS,
+            )
+            score -= 20
+        } else {
+            strengths += "전체 화면 알림 OK"
+        }
+
         if (!permissions.ignoringBatteryOpts) {
             issues += ReliabilityIssue(
                 id = "battery_optimization",
@@ -192,12 +206,13 @@ object AlarmReliability {
     private fun issuePriority(id: String): Int = when (id) {
         "notifications" -> 0
         "exact_alarm" -> 1
-        "battery_optimization" -> 2
-        "no_enabled_alarm" -> 3
-        "silent_alarm" -> 4
-        "low_volume" -> 5
-        "unlimited_snooze" -> 6
-        "no_dismiss_gate" -> 7
+        "full_screen_intent" -> 2
+        "battery_optimization" -> 3
+        "no_enabled_alarm" -> 4
+        "silent_alarm" -> 5
+        "low_volume" -> 6
+        "unlimited_snooze" -> 7
+        "no_dismiss_gate" -> 8
         else -> 100
     }
 

@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,9 +17,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.rustyalarm.auth.AuthRepository
+import com.example.rustyalarm.alarm.AlarmRepository
 import com.example.rustyalarm.auth.AuthViewModel
 import com.example.rustyalarm.prefs.ThemeMode
 import com.example.rustyalarm.prefs.ThemePreferences
@@ -29,10 +29,17 @@ import com.example.rustyalarm.ui.screens.LockScreen
 import com.example.rustyalarm.ui.screens.OnboardingScreen
 import com.example.rustyalarm.ui.screens.PinSetupScreen
 import com.example.rustyalarm.ui.theme.RustyAlarmTheme
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : FragmentActivity() {
 
-    private var authVmRef: AuthViewModel? = null
+    @Inject lateinit var repository: AlarmRepository
+    @Inject lateinit var themePrefs: ThemePreferences
+    @Inject lateinit var userPrefs: UserPreferences
+
+    private val authVm: AuthViewModel by viewModels()
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -41,16 +48,6 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestNotificationPermissionIfNeeded()
-
-        val app        = application as RustyAlarmApplication
-        val repository = app.repository
-        val eventDao   = app.database.alarmEventDao()
-        val petDao     = app.database.petDao()
-        val authRepo   = AuthRepository(this)
-        val authVm     = ViewModelProvider(this, AuthViewModel.Factory(authRepo))[AuthViewModel::class.java]
-        authVmRef = authVm
-        val themePrefs = ThemePreferences(applicationContext)
-        val userPrefs  = UserPreferences(applicationContext)
 
         setContent {
             val themeMode by themePrefs.mode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
@@ -95,13 +92,11 @@ class MainActivity : FragmentActivity() {
 
                         // Normal app
                         else -> AppNavigation(
-                            repository = repository,
-                            eventDao   = eventDao,
-                            petDao     = petDao,
-                            authVm     = authVm,
-                            themePrefs = themePrefs,
-                            userPrefs  = userPrefs,
-                            userProfile = userProfile,
+                            repository      = repository,
+                            authVm          = authVm,
+                            themePrefs      = themePrefs,
+                            userPrefs       = userPrefs,
+                            userProfile     = userProfile,
                             canUseBiometric = canBio,
                         )
                     }
@@ -137,7 +132,7 @@ class MainActivity : FragmentActivity() {
         super.onStop()
         // Only re-lock when the user has explicitly opted into app lock
         // (avoid surprising users who never enabled it)
-        authVmRef?.lock()
+        authVm.lock()
     }
 
     private fun requestNotificationPermissionIfNeeded() {

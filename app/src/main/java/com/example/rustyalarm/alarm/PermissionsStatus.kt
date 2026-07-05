@@ -2,6 +2,7 @@ package com.example.rustyalarm.alarm
 
 import android.Manifest
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -15,6 +16,7 @@ data class PermissionsStatus(
     val notifications: Boolean,
     val exactAlarm: Boolean,
     val ignoringBatteryOpts: Boolean,
+    val fullScreenIntent: Boolean = true,
 )
 
 object Permissions {
@@ -34,7 +36,12 @@ object Permissions {
             pm.isIgnoringBatteryOptimizations(context.packageName)
         } else true
 
-        return PermissionsStatus(noti, exact, battery)
+        val fullScreen = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.canUseFullScreenIntent()
+        } else true
+
+        return PermissionsStatus(noti, exact, battery, fullScreen)
     }
 
     fun exactAlarmSettings(context: Context): Intent? =
