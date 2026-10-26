@@ -161,38 +161,36 @@ fun AlarmListScreen(
                 )
             },
             floatingActionButton = {
-                if (alarms.isNotEmpty()) {
-                    Box {
-                        ExtendedFloatingActionButton(
+                Box {
+                    ExtendedFloatingActionButton(
+                        onClick = onAddAlarm,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                        text = { Text("알람 추가", fontWeight = FontWeight.SemiBold) },
+                        modifier = Modifier.combinedClickable(
                             onClick = onAddAlarm,
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                            text = { Text("알람 추가", fontWeight = FontWeight.SemiBold) },
-                            modifier = Modifier.combinedClickable(
-                                onClick = onAddAlarm,
-                                onLongClick = { quickMenuOpen = true },
-                            ),
+                            onLongClick = { quickMenuOpen = true },
+                        ),
+                    )
+                    DropdownMenu(
+                        expanded = quickMenuOpen,
+                        onDismissRequest = { quickMenuOpen = false },
+                    ) {
+                        Text(
+                            "빠른 알람",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         )
-                        DropdownMenu(
-                            expanded = quickMenuOpen,
-                            onDismissRequest = { quickMenuOpen = false },
-                        ) {
-                            Text(
-                                "빠른 알람",
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        listOf(5, 10, 15, 30, 60).forEach { mins ->
+                            DropdownMenuItem(
+                                text = { Text("${mins}분 후 알람") },
+                                onClick = {
+                                    quickMenuOpen = false
+                                    vm.quickAlarm(mins)
+                                },
                             )
-                            listOf(5, 10, 15, 30, 60).forEach { mins ->
-                                DropdownMenuItem(
-                                    text = { Text("${mins}분 후 알람") },
-                                    onClick = {
-                                        quickMenuOpen = false
-                                        vm.quickAlarm(mins)
-                                    },
-                                )
-                            }
                         }
                     }
                 }

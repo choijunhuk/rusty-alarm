@@ -13,21 +13,23 @@
 가장 쉬운 방법. 폰 브라우저에서 한 번에 받기:
 
 1. 폰에서 [**최신 Release 페이지**](https://github.com/choijunhuk/rusty-alarm/releases/latest) 열기.
-2. `rusty-alarm-android-v1.0.0.apk` 탭 → 다운로드.
+2. [`rusty-alarm-android-v1.0.1.apk`](https://github.com/choijunhuk/rusty-alarm/releases/download/v1.0.1/rusty-alarm-android-v1.0.1.apk) 탭 → 다운로드.
 3. 처음이면 **설정 → 보안 → "출처를 알 수 없는 앱" 허용** (브라우저 또는 파일 관리자 항목).
 4. 다운로드된 APK 파일 탭 → "설치".
-5. 첫 실행시 권한 다이얼로그 전부 허용 (알람, 알림, 위치, 카메라, 마이크).
+5. 첫 실행에서 알림 권한을 허용하고, 홈의 안내에 따라 알람 권한을 설정한다. 위치·카메라·마이크 권한은 해당 챌린지를 사용할 때만 필요하다.
 
 **최소 요구사항**: Android 8.0 (API 26) 이상.
 
 > 디버그 서명이라 Play Store 자동 업데이트 안 됨. 새 버전은 Release 페이지에서 다시 받아야 한다.
+
+> v1.0.1은 기존 v1.0.0과 서명이 다르다. 기존 앱에서 **설정 → 백업 → 내보내기**로 알람을 JSON 파일에 저장한 뒤 앱을 삭제하고 새 APK를 설치한다. 설치 후 백업 파일을 가져온다.
 
 ### ⌚ Wear OS 워치 → 페어링 폰 통해 사이드로드
 
 워치 앱은 페어링된 폰에 Android 앱이 먼저 설치되어 있어야 한다.
 
 1. 위의 Android 앱부터 설치.
-2. [`rusty-alarm-wear-v1.0.0.apk`](https://github.com/choijunhuk/rusty-alarm/releases/latest) 다운.
+2. [`rusty-alarm-wear-v1.0.0.apk`](https://github.com/choijunhuk/rusty-alarm/releases/download/v1.0.0/rusty-alarm-wear-v1.0.0.apk) 다운.
 3. 워치 디버깅 켜기: 워치 설정 → 시스템 → 정보 → 빌드 번호 7번 탭 → 개발자 옵션 → ADB 디버깅 ON + Wi-Fi/Bluetooth 디버깅 ON.
 4. 컴퓨터에서:
    ```sh
