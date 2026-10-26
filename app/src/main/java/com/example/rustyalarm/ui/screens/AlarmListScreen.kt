@@ -391,7 +391,7 @@ private fun ReadinessActionPanel(
                 AssistChip(
                     onClick = {},
                     enabled = false,
-                    label = { Text("${diagnostic.score} · ${diagnostic.level.label}") },
+                    label = { Text(diagnostic.level.label) },
                 )
             }
 
@@ -421,7 +421,7 @@ private fun ReadinessActionPanel(
             val extraCount = diagnostic.issues.size - 1
             if (extraCount > 0) {
                 Text(
-                    "추가 보강 ${extraCount}개는 설정과 알람 편집에서 이어서 조정할 수 있어요.",
+                    "추가 확인 ${extraCount}개는 설정과 알람 편집에서 확인할 수 있어요.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 )
@@ -567,8 +567,8 @@ private fun NextAlarmHero(
                     }
                     HeroPill(
                         icon = Icons.Default.Alarm,
-                        text = if (nextAlarmIssues.isEmpty()) "실사용 안정"
-                               else "보강 ${nextAlarmIssues.size}개",
+                        text = if (nextAlarmIssues.isEmpty()) "알람 설정됨"
+                               else "설정 확인 ${nextAlarmIssues.size}개",
                     )
                 }
                 nextAlarmIssues.firstOrNull()?.let { issue ->

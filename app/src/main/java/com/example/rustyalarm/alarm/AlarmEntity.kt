@@ -28,7 +28,7 @@ data class AlarmEntity(
     val routineItems: String = "",
     val youtubeUrl: String? = null,
     val alarmVolumePercent: Int = 100,
-    val preAlarmMinutes: Int = 15,
+    val preAlarmMinutes: Int = 0,
     val geofenceLat: Double? = null,
     val geofenceLng: Double? = null,
     val geofenceRadius: Int = 100,

@@ -46,7 +46,7 @@ abstract class AlarmDatabase : RoomDatabase() {
         private val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
-                    "ALTER TABLE alarms ADD COLUMN preAlarmMinutes INTEGER NOT NULL DEFAULT 15"
+                    "ALTER TABLE alarms ADD COLUMN preAlarmMinutes INTEGER NOT NULL DEFAULT 0"
                 )
             }
         }

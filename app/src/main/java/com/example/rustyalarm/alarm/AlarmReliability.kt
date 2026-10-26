@@ -119,12 +119,12 @@ object AlarmReliability {
         val boundedScore = score.coerceIn(0, 100)
         val level = when {
             issues.any { it.blocking } || boundedScore < 60 -> ReliabilityLevel.BLOCKED
-            boundedScore < 90 -> ReliabilityLevel.CAUTION
+            issues.isNotEmpty() -> ReliabilityLevel.CAUTION
             else -> ReliabilityLevel.READY
         }
         val headline = when (level) {
-            ReliabilityLevel.READY -> "오늘 알람 환경은 안정적이에요"
-            ReliabilityLevel.CAUTION -> "알람은 울리지만 몇 가지 보강이 좋아요"
+            ReliabilityLevel.READY -> "알람에 필요한 설정이 켜져 있어요"
+            ReliabilityLevel.CAUTION -> "알람 권한이나 소리 설정을 확인해주세요"
             ReliabilityLevel.BLOCKED -> "먼저 권한과 시스템 설정을 확인하세요"
         }
 
@@ -152,26 +152,8 @@ object AlarmReliability {
             issues += ReliabilityIssue(
                 id = "low_volume",
                 title = "알람 음량이 낮아요",
-                detail = "실사용 알람은 70% 이상이 안전해요.",
+                detail = "주변 소리에 묻히지 않는지 알람음을 미리 들어보세요.",
                 actionLabel = "음량 보강",
-                actionKind = ReliabilityActionKind.EDIT_ALARM,
-            )
-        }
-        if (alarm.maxSnoozes == 0) {
-            issues += ReliabilityIssue(
-                id = "unlimited_snooze",
-                title = "스누즈가 무제한이에요",
-                detail = "다시 잠드는 습관을 막으려면 1-3회 제한이 좋아요.",
-                actionLabel = "스누즈 제한",
-                actionKind = ReliabilityActionKind.EDIT_ALARM,
-            )
-        }
-        if (alarm.challengeType == ChallengeType.NONE && alarm.routineItems.isEmpty()) {
-            issues += ReliabilityIssue(
-                id = "no_dismiss_gate",
-                title = "끄기 장치가 없어요",
-                detail = "챌린지나 루틴이 없으면 무의식적으로 끄기 쉬워요.",
-                actionLabel = "끄기 장치 추가",
                 actionKind = ReliabilityActionKind.EDIT_ALARM,
             )
         }
@@ -179,11 +161,8 @@ object AlarmReliability {
     }
 
     fun alarmStrengths(alarm: Alarm): List<String> = buildList {
-        if (alarm.challengeType != ChallengeType.NONE) add("챌린지로 무의식 끄기 방지")
-        if (alarm.maxSnoozes in 1..3) add("스누즈 ${alarm.maxSnoozes}회 제한")
-        if (alarm.routineItems.isNotEmpty()) add("기상 루틴 ${alarm.routineItems.size}개")
-        if (alarm.gradualWakeup) add("단계적 알람 사용")
-        if (alarm.preAlarmMinutes > 0) add("${alarm.preAlarmMinutes}분 전 미리알림")
+        if (alarm.soundEnabled) add("알람 소리 켜짐")
+        if (alarm.vibrate) add("진동 켜짐")
     }
 
     fun primaryIssue(issues: List<ReliabilityIssue>): ReliabilityIssue? =
@@ -191,17 +170,6 @@ object AlarmReliability {
             compareBy<ReliabilityIssue> { if (it.blocking) 0 else 1 }
                 .thenBy { issuePriority(it.id) },
         )
-
-    fun recommendedPreset(alarm: Alarm): WakeupPreset? {
-        val issues = alarmIssues(alarm).map { it.id }.toSet()
-        return when {
-            "silent_alarm" in issues -> WakeupPreset.FORCED
-            "no_dismiss_gate" in issues && "unlimited_snooze" in issues -> WakeupPreset.ON_TIME
-            "low_volume" in issues || "unlimited_snooze" in issues -> WakeupPreset.ON_TIME
-            "no_dismiss_gate" in issues -> WakeupPreset.FORCED
-            else -> null
-        }
-    }
 
     private fun issuePriority(id: String): Int = when (id) {
         "notifications" -> 0
@@ -211,16 +179,12 @@ object AlarmReliability {
         "no_enabled_alarm" -> 4
         "silent_alarm" -> 5
         "low_volume" -> 6
-        "unlimited_snooze" -> 7
-        "no_dismiss_gate" -> 8
         else -> 100
     }
 
     private fun issuePenalty(id: String): Int = when (id) {
         "silent_alarm" -> 15
         "low_volume" -> 8
-        "unlimited_snooze" -> 10
-        "no_dismiss_gate" -> 10
         else -> 5
     }
 }

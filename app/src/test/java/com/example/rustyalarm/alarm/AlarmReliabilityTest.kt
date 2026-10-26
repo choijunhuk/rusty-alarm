@@ -6,21 +6,21 @@ import org.junit.Test
 
 class AlarmReliabilityTest {
 
+    private val permissions = PermissionsStatus(
+        notifications = true,
+        exactAlarm = true,
+        ignoringBatteryOpts = true,
+    )
+
     @Test
-    fun diagnose_marksMissingPermissionsAsBlockingReliabilityIssues() {
+    fun missingPermissionsStillBlockReadiness() {
         val diagnostic = AlarmReliability.diagnose(
-            permissions = PermissionsStatus(
-                notifications = false,
-                exactAlarm = false,
-                ignoringBatteryOpts = false,
-                fullScreenIntent = false,
-            ),
+            permissions = PermissionsStatus(false, false, false, false),
             enabledAlarmCount = 1,
-            nextAlarm = strongAlarm(),
+            nextAlarm = Alarm(),
         )
 
         assertEquals(ReliabilityLevel.BLOCKED, diagnostic.level)
-        assertTrue(diagnostic.score < 60)
         assertTrue(diagnostic.issues.any { it.id == "notifications" && it.blocking })
         assertTrue(diagnostic.issues.any { it.id == "exact_alarm" && it.blocking })
         assertTrue(diagnostic.issues.any { it.id == "full_screen_intent" })
@@ -28,152 +28,74 @@ class AlarmReliabilityTest {
     }
 
     @Test
-    fun diagnose_rewardsChallengeSnoozeCapAndRoutineForNextAlarm() {
-        val diagnostic = AlarmReliability.diagnose(
-            permissions = PermissionsStatus(
-                notifications = true,
-                exactAlarm = true,
-                ignoringBatteryOpts = true,
-            ),
-            enabledAlarmCount = 1,
-            nextAlarm = strongAlarm(),
-        )
+    fun ordinaryAlarmIsReadyWithoutChallengesOrSnoozeLimits() {
+        val diagnostic = AlarmReliability.diagnose(permissions, 1, Alarm())
 
         assertEquals(ReliabilityLevel.READY, diagnostic.level)
         assertEquals(100, diagnostic.score)
-        assertTrue(diagnostic.strengths.any { it.contains("챌린지") })
-        assertTrue(diagnostic.strengths.any { it.contains("스누즈") })
-        assertTrue(diagnostic.strengths.any { it.contains("루틴") })
+        assertTrue(diagnostic.issues.isEmpty())
     }
 
     @Test
-    fun diagnoseFlagsAlarmsThatCanBeSilencedTooEasily() {
+    fun addingChallengesDoesNotChangeDeliveryReadiness() {
+        val ordinary = AlarmReliability.diagnose(permissions, 1, Alarm())
+        val forced = AlarmReliability.diagnose(
+            permissions, 1, WakeupPresetApplier.apply(Alarm(), WakeupPreset.FORCED),
+        )
+
+        assertEquals(ordinary.score, forced.score)
+        assertEquals(ordinary.level, forced.level)
+        assertEquals(ordinary.strengths, forced.strengths)
+    }
+
+    @Test
+    fun soundAndVibrationBothOffStillProduceAnActionableWarning() {
         val diagnostic = AlarmReliability.diagnose(
-            permissions = PermissionsStatus(
-                notifications = true,
-                exactAlarm = true,
-                ignoringBatteryOpts = true,
-            ),
-            enabledAlarmCount = 1,
-            nextAlarm = Alarm(
-                soundEnabled = false,
-                vibrate = false,
-                challengeType = ChallengeType.NONE,
-                maxSnoozes = 0,
-                routineItems = emptyList(),
-                alarmVolumePercent = 20,
-            ),
+            permissions, 1, Alarm(soundEnabled = false, vibrate = false),
         )
 
         assertEquals(ReliabilityLevel.CAUTION, diagnostic.level)
-        assertTrue(diagnostic.score in 60..89)
-        assertTrue(diagnostic.issues.any { it.id == "silent_alarm" })
-        assertTrue(diagnostic.issues.any { it.id == "unlimited_snooze" })
-        assertTrue(diagnostic.issues.any { it.id == "no_dismiss_gate" })
+        assertEquals(listOf("silent_alarm"), diagnostic.issues.map { it.id })
+        assertEquals(ReliabilityActionKind.EDIT_ALARM, diagnostic.issues.single().actionKind)
     }
 
     @Test
-    fun diagnoseMapsIssuesToUserActions() {
+    fun lowVolumeIsCautionEvenWhenPermissionsAreGranted() {
         val diagnostic = AlarmReliability.diagnose(
-            permissions = PermissionsStatus(
-                notifications = false,
-                exactAlarm = false,
-                ignoringBatteryOpts = false,
-                fullScreenIntent = false,
-            ),
-            enabledAlarmCount = 0,
-            nextAlarm = Alarm(
-                soundEnabled = false,
-                vibrate = false,
-                challengeType = ChallengeType.NONE,
-                maxSnoozes = 0,
-                routineItems = emptyList(),
-            ),
+            permissions, 1, Alarm(alarmVolumePercent = 20),
         )
 
-        assertEquals(
-            ReliabilityActionKind.NOTIFICATION_SETTINGS,
-            diagnostic.issues.first { it.id == "full_screen_intent" }.actionKind,
-        )
-        assertEquals(
-            ReliabilityActionKind.NOTIFICATION_SETTINGS,
-            diagnostic.issues.first { it.id == "notifications" }.actionKind,
-        )
-        assertEquals(
-            ReliabilityActionKind.EXACT_ALARM_SETTINGS,
-            diagnostic.issues.first { it.id == "exact_alarm" }.actionKind,
-        )
-        assertEquals(
-            ReliabilityActionKind.BATTERY_SETTINGS,
-            diagnostic.issues.first { it.id == "battery_optimization" }.actionKind,
-        )
-        assertEquals(
-            ReliabilityActionKind.CREATE_TEST_ALARM,
-            diagnostic.issues.first { it.id == "no_enabled_alarm" }.actionKind,
-        )
-        assertEquals(
-            ReliabilityActionKind.EDIT_ALARM,
-            diagnostic.issues.first { it.id == "silent_alarm" }.actionKind,
-        )
+        assertEquals(ReliabilityLevel.CAUTION, diagnostic.level)
+        assertEquals(listOf("low_volume"), diagnostic.issues.map { it.id })
     }
 
     @Test
-    fun primaryIssuePrefersBlockingPermissionBeforeAlarmTuning() {
+    fun vibrationOnlyAlarmDoesNotGetASoundWarning() {
+        assertTrue(AlarmReliability.alarmIssues(Alarm(soundEnabled = false)).isEmpty())
+    }
+
+    @Test
+    fun permissionIssuesKeepTheirSystemSettingsActions() {
         val diagnostic = AlarmReliability.diagnose(
-            permissions = PermissionsStatus(
-                notifications = true,
-                exactAlarm = false,
-                ignoringBatteryOpts = true,
-            ),
-            enabledAlarmCount = 1,
-            nextAlarm = Alarm(
-                soundEnabled = false,
-                vibrate = false,
-                challengeType = ChallengeType.NONE,
-                maxSnoozes = 0,
-                routineItems = emptyList(),
-            ),
+            PermissionsStatus(false, false, false, false), 0, null,
+        )
+        val actions = diagnostic.issues.associate { it.id to it.actionKind }
+
+        assertEquals(ReliabilityActionKind.NOTIFICATION_SETTINGS, actions["notifications"])
+        assertEquals(ReliabilityActionKind.NOTIFICATION_SETTINGS, actions["full_screen_intent"])
+        assertEquals(ReliabilityActionKind.EXACT_ALARM_SETTINGS, actions["exact_alarm"])
+        assertEquals(ReliabilityActionKind.BATTERY_SETTINGS, actions["battery_optimization"])
+        assertEquals(ReliabilityActionKind.CREATE_TEST_ALARM, actions["no_enabled_alarm"])
+    }
+
+    @Test
+    fun primaryIssuePrefersMissingPermissionBeforeSoundTuning() {
+        val diagnostic = AlarmReliability.diagnose(
+            permissions.copy(exactAlarm = false),
+            1,
+            Alarm(soundEnabled = false, vibrate = false),
         )
 
         assertEquals("exact_alarm", AlarmReliability.primaryIssue(diagnostic.issues)?.id)
     }
-
-    @Test
-    fun recommendedPresetUsesWeakestUsefulModeForDraftAlarm() {
-        assertEquals(
-            WakeupPreset.FORCED,
-            AlarmReliability.recommendedPreset(
-                Alarm(
-                    challengeType = ChallengeType.NONE,
-                    maxSnoozes = 0,
-                    routineItems = emptyList(),
-                    soundEnabled = false,
-                    vibrate = false,
-                ),
-            ),
-        )
-        assertEquals(
-            WakeupPreset.ON_TIME,
-            AlarmReliability.recommendedPreset(
-                Alarm(
-                    challengeType = ChallengeType.NONE,
-                    maxSnoozes = 0,
-                    routineItems = emptyList(),
-                    soundEnabled = true,
-                    vibrate = true,
-                    alarmVolumePercent = 90,
-                ),
-            ),
-        )
-        assertEquals(null, AlarmReliability.recommendedPreset(strongAlarm()))
-    }
-
-    private fun strongAlarm(): Alarm = Alarm(
-        challengeType = ChallengeType.MATH_MEDIUM,
-        maxSnoozes = 1,
-        routineItems = listOf("물 마시기", "창문 열기"),
-        gradualWakeup = true,
-        preAlarmMinutes = 10,
-        alarmVolumePercent = 90,
-    )
 }

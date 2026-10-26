@@ -2,6 +2,7 @@ package com.example.rustyalarm.viewmodel
 
 import com.example.rustyalarm.alarm.WakeupPreset
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -37,23 +38,15 @@ class ReportInsightEngineTest {
         )
 
         assertTrue(insights.any { it.id == "high_snooze" })
-        assertTrue(insights.any { it.id == "no_challenge" })
+        assertFalse(insights.any { it.id == "no_challenge" })
         assertTrue(insights.first { it.id == "high_snooze" }.cause!!.contains("75%"))
         assertTrue(
             insights.first { it.id == "high_snooze" }
                 .action!!.expectedResult.contains("스누즈 1회"),
         )
-        assertTrue(
-            insights.first { it.id == "no_challenge" }
-                .action!!.expectedResult.contains("끄기 장치"),
-        )
         assertEquals(
             WakeupPreset.ON_TIME,
             insights.first { it.id == "high_snooze" }.action?.preset,
-        )
-        assertEquals(
-            WakeupPreset.FORCED,
-            insights.first { it.id == "no_challenge" }.action?.preset,
         )
     }
 
@@ -74,4 +67,40 @@ class ReportInsightEngineTest {
         assertTrue(insights.first().title.contains("좋아요"))
         assertEquals(null, insights.first().action)
     }
+    @Test
+    fun ordinaryAlarmUseDoesNotTriggerAChallengeRecommendation() {
+        val insights = ReportInsightEngine.insights(
+            WakeupInsightInput(
+                fired = 5,
+                dismissed = 5,
+                snoozed = 0,
+                avgResponseSec = 30,
+                challengesCompleted = 0,
+                streakDays = 5,
+            ),
+        )
+
+        assertFalse(insights.any { it.id == "no_challenge" })
+        assertTrue(insights.all { it.action == null })
+    }
+
+    @Test
+    fun comfortableModeRecommendationDisclosesRemovalOfExistingGates() {
+        val insights = ReportInsightEngine.insights(
+            WakeupInsightInput(
+                fired = 5,
+                dismissed = 5,
+                snoozed = 0,
+                avgResponseSec = 240,
+                challengesCompleted = 5,
+                streakDays = 5,
+            ),
+        )
+
+        val action = insights.first { it.id == "slow_response" }.action!!
+        assertEquals(WakeupPreset.COMFORTABLE, action.preset)
+        assertTrue(action.expectedResult.contains("챌린지와 루틴"))
+        assertTrue(action.expectedResult.contains("스누즈 3회"))
+    }
+
 }
