@@ -87,6 +87,21 @@ class AlarmRingScreenTest {
     }
 
     @Test
+    fun `snooze does not require completing challenge or routine`() {
+        var snoozed = false
+        show(
+            challengeType = ChallengeType.MATH_EASY,
+            routineItems = listOf("물 마시기"),
+            snoozesRemaining = 2,
+            onSnooze = { snoozed = true },
+        )
+
+        rule.onNodeWithText("5분 뒤 (2 회 남음)")
+            .performScrollTo().assertIsEnabled().performClick()
+        assertTrue(snoozed)
+    }
+
+    @Test
     fun `snooze exhausted - snooze disabled`() {
         show(snoozesRemaining = 0)
 

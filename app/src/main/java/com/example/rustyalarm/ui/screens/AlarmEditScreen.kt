@@ -49,11 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.rustyalarm.alarm.Alarm
 import com.example.rustyalarm.alarm.AlarmReliability
 import com.example.rustyalarm.alarm.ChallengeType
 import com.example.rustyalarm.alarm.WakeupPreset
-import com.example.rustyalarm.alarm.WakeupPresetApplier
 import com.example.rustyalarm.ui.components.DaySelector
 import com.example.rustyalarm.ui.components.TimePickerSection
 import com.example.rustyalarm.viewmodel.AlarmEditViewModel
@@ -158,6 +156,16 @@ fun AlarmEditScreen(
         } ?: "기본 알람음"
     }
 
+    fun requestSave() {
+        scope.launch {
+            val conflict = vm.checkConflict()
+            val dnd = if (alarm.soundEnabled) checkDndWarning(context) else null
+            val alertWarnings = AlarmReliability.alarmIssues(alarm).map { it.title }
+            val combined = (listOfNotNull(conflict, dnd) + alertWarnings).joinToString("\n\n")
+            if (combined.isNotEmpty()) warning = combined else vm.save()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -181,6 +189,9 @@ fun AlarmEditScreen(
                                 tint = MaterialTheme.colorScheme.error,
                             )
                         }
+                    }
+                    TextButton(onClick = ::requestSave, enabled = isLoaded) {
+                        Text("저장", fontWeight = FontWeight.SemiBold)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -215,97 +226,12 @@ fun AlarmEditScreen(
                 }
             }
 
-            // ── Quick presets — only new alarm ─────────
-            if (!isEdit) {
-                SectionCard(
-                    title = "빠른 설정",
-                    icon = Icons.Default.AccessTime,
-                    initiallyExpanded = true,
-                ) {
-                    Text(
-                        "지금부터 시간 지나면 울려요",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        listOf(
-                            5 to "5분 후",
-                            15 to "15분 후",
-                            30 to "30분 후",
-                            60 to "1시간 후",
-                            180 to "3시간 후",
-                            480 to "8시간 후",
-                        ).forEach { (min, label) ->
-                            AssistChip(
-                                onClick = { vm.saveQuickFromNow(min, label) },
-                                label = { Text(label) },
-                            )
-                        }
-                    }
-                }
-            }
-
-            // ── Real-use success profile ─────────────
+            // Time and repeat are the everyday path; other options stay collapsed.
             SectionCard(
-                title = "기상 성공률",
-                icon = Icons.Default.NotificationsActive,
+                title = "반복",
+                icon = Icons.Default.AccessTime,
                 initiallyExpanded = true,
             ) {
-                val profile = remember(alarm) { WakeupPresetApplier.profile(alarm) }
-                Text(
-                    "${profile.title} · ${profile.level.label}",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    profile.recommendation,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    WakeupPreset.entries.forEach { preset ->
-                        AssistChip(
-                            onClick = { vm.applyWakeupPreset(preset) },
-                            label = { Text(preset.label) },
-                        )
-                    }
-                }
-                Text(
-                    "기상 모드는 현재 알람에 바로 반영되고, 저장을 눌러야 적용돼요.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                )
-            }
-
-            // ── 기본 정보 ──────────────────────────────
-            SectionCard(
-                title = "기본 정보",
-                icon = Icons.Default.Edit,
-                initiallyExpanded = true,
-            ) {
-                OutlinedTextField(
-                    value = alarm.title, onValueChange = vm::updateTitle,
-                    label = { Text("알람 이름") }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = alarm.message,
-                    onValueChange = vm::updateMessage,
-                    label = { Text("한 줄 메시지 (선택)") },
-                    placeholder = { Text("예: 물 한 잔 마시기") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
                 ToggleRow(
                     label = "특정 날짜 지정",
                     checked = alarm.specificDate != null,
@@ -357,11 +283,102 @@ fun AlarmEditScreen(
                 }
             }
 
+            // ── Quick presets — only new alarm ─────────
+            if (!isEdit) {
+                SectionCard(
+                    title = "빠른 설정",
+                    icon = Icons.Default.AccessTime,
+                    initiallyExpanded = false,
+                ) {
+                    Text(
+                        "지금부터 시간 지나면 울려요",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        listOf(
+                            5 to "5분 후",
+                            15 to "15분 후",
+                            30 to "30분 후",
+                            60 to "1시간 후",
+                            180 to "3시간 후",
+                            480 to "8시간 후",
+                        ).forEach { (min, label) ->
+                            AssistChip(
+                                onClick = { vm.saveQuickFromNow(min, label) },
+                                label = { Text(label) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            SectionCard(
+                title = "기상 모드 (선택)",
+                icon = Icons.Default.NotificationsActive,
+                initiallyExpanded = false,
+            ) {
+                Text(
+                    buildList {
+                        add(if (alarm.challengeType == ChallengeType.NONE) "버튼으로 끄기"
+                            else alarm.challengeType.label)
+                        if (alarm.routineItems.isNotEmpty()) add("루틴 ${alarm.routineItems.size}개")
+                        if (alarm.preAlarmMinutes > 0) add("${alarm.preAlarmMinutes}분 전 미리알림")
+                    }.joinToString(" · ", prefix = "현재: "),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    "모드를 적용하면 아래 설정으로 바뀌어요. 소리·진동은 켜지고 미리알림·스마트 알람은 꺼져요. 저장하면 반영돼요.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
+                WakeupPreset.entries.forEach { preset ->
+                    OutlinedButton(
+                        onClick = { vm.applyWakeupPreset(preset) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text("${preset.label} 적용", fontWeight = FontWeight.SemiBold)
+                            Text(preset.description, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+
+            SectionCard(
+                title = "이름과 메시지",
+                icon = Icons.Default.Edit,
+                initiallyExpanded = false,
+            ) {
+                OutlinedTextField(
+                    value = alarm.title, onValueChange = vm::updateTitle,
+                    label = { Text("알람 이름") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = alarm.message,
+                    onValueChange = vm::updateMessage,
+                    label = { Text("한 줄 메시지 (선택)") },
+                    placeholder = { Text("예: 물 한 잔 마시기") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+            }
+
             // ── 소리 & 진동 ─────────────────────────────
             SectionCard(
                 title = "소리 & 진동",
                 icon = Icons.Default.MusicNote,
-                initiallyExpanded = true,
+                initiallyExpanded = false,
             ) {
                 ToggleRow("알람 소리", alarm.soundEnabled, vm::updateSoundEnabled)
 
@@ -459,9 +476,9 @@ fun AlarmEditScreen(
 
             // ── 챌린지 ─────────────────────────────────
             SectionCard(
-                title = "알람 끄기 챌린지",
+                title = "알람 끄기 챌린지 (선택)",
                 icon = Icons.Default.Bolt,
-                initiallyExpanded = true,
+                initiallyExpanded = false,
             ) {
                 ExposedDropdownMenuBox(
                     expanded = challengeMenuExpanded,
@@ -628,33 +645,6 @@ fun AlarmEditScreen(
                 }
             }
 
-            DraftReliabilityPreview(
-                alarm = alarm,
-                onApplyPreset = vm::applyWakeupPreset,
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            Button(
-                onClick = {
-                    scope.launch {
-                        val conflict = vm.checkConflict()
-                        val dnd = if (alarm.soundEnabled) checkDndWarning(context) else null
-                        val combined = listOfNotNull(conflict, dnd).joinToString("\n\n")
-                        if (combined.isNotEmpty()) warning = combined else vm.save()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Icon(Icons.Default.NotificationsActive, contentDescription = null,
-                    modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("저장",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold)
-            }
-
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -787,92 +777,6 @@ private fun SectionCard(
             }
         }
     }
-}
-
-@Composable
-private fun DraftReliabilityPreview(
-    alarm: Alarm,
-    onApplyPreset: (WakeupPreset) -> Unit,
-) {
-    val profile = remember(alarm) { WakeupPresetApplier.profile(alarm) }
-    val issues = remember(alarm) { AlarmReliability.alarmIssues(alarm) }
-    val strengths = remember(alarm) { AlarmReliability.alarmStrengths(alarm) }
-    val recommendedPreset = remember(alarm) { AlarmReliability.recommendedPreset(alarm) }
-
-    SectionCard(
-        title = "저장 전 성공 점검",
-        icon = Icons.Default.NotificationsActive,
-        initiallyExpanded = true,
-    ) {
-        Text(
-            "${profile.title} · ${profile.level.label}",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            profile.recommendation,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-        )
-
-        issues.firstOrNull()?.let { issue ->
-            Surface(
-                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        issue.title,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                    Text(
-                        issue.detail,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.72f),
-                    )
-                }
-            }
-        }
-
-        if (strengths.isNotEmpty()) {
-            Text(
-                strengths.take(3).joinToString(" · "),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-            )
-        }
-
-        recommendedPreset?.let { preset ->
-            Text(
-                presetImpactText(preset),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-            )
-            FilledTonalButton(
-                onClick = { onApplyPreset(preset) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-            ) {
-                Text("${preset.label} 적용")
-            }
-        }
-    }
-}
-
-private fun presetImpactText(preset: WakeupPreset): String = when (preset) {
-    WakeupPreset.COMFORTABLE ->
-        "미리알림, 단계적 알람, 최대 3회 스누즈로 부담을 낮춰요."
-    WakeupPreset.ON_TIME ->
-        "스누즈 1회, 타이핑 챌린지, 높은 음량으로 시간을 지키게 해요."
-    WakeupPreset.FORCED ->
-        "끄기 장치, 강한 음량, 기상 루틴을 함께 켜서 무의식 끄기를 막아요."
 }
 
 @Composable

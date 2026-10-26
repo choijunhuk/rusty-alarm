@@ -443,7 +443,7 @@ fun AlarmRingScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                val canSnooze = snoozesRemaining > 0 && routineComplete
+                val canSnooze = snoozesRemaining > 0
                 OutlinedButton(
                     onClick = { if (canSnooze) onSnooze() },
                     modifier = Modifier.weight(1f).height(56.dp),
@@ -452,7 +452,6 @@ fun AlarmRingScreen(
                 ) {
                     Text(
                         when {
-                            !routineComplete && routineItems.isNotEmpty() -> "🔒 루틴 먼저"
                             snoozesRemaining == Int.MAX_VALUE -> "5분 뒤"
                             snoozesRemaining > 0 -> "5분 뒤 ($snoozesRemaining 회 남음)"
                             else -> "스누즈 소진"

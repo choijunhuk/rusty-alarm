@@ -41,7 +41,7 @@ data class Alarm(
     val routineItems: List<String> = emptyList(),  // morning checklist shown after dismiss-gate
     val youtubeUrl: String? = null,       // YouTube video or playlist URL — auto-played on ring
     val alarmVolumePercent: Int = 100,    // 0-100, applied as soft scale on top of system alarm volume
-    val preAlarmMinutes: Int = 15,        // 0 = disabled; otherwise gentle pre-buzz N minutes ahead  // vibrate → soft → loud staged ramp
+    val preAlarmMinutes: Int = 0,         // opt in to a gentle pre-buzz N minutes ahead
     val geofenceLat: Double? = null,     // location challenge target
     val geofenceLng: Double? = null,
     val geofenceRadius: Int = 100,       // metres for location proximity
